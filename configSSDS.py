@@ -9,11 +9,13 @@ def openSDSS(files):
     ])
 
 class wrapSDSS(object):
-    """A catalog wrapper interface for SDSS.
+    """Catalog wrapper interface for SDSS.
 
     Wrappers must provide the following properties:
-    * z
     * weight
+    * z: redshift
+    * ra: right ascension
+    * dec: declination
     """
     def __init__(self, files):
         self.ctlg = openSDSS(files)
@@ -21,15 +23,27 @@ class wrapSDSS(object):
     @property
     def z(self): return self.ctlg['z']
 
+    @property
+    def ra(self): return self.ctlg['ra']
+
+    @property
+    def dec(self): return self.ctlg['dec']
+
+    @property
+    def weight(self):
+        return len(self.ctlg) * [1]
 
 class wrapRandomSDSS(wrapSDSS):
+    """Catalog wrapper with SDSS random catalog weights."""
     def __init__(self, files):
         super(wrapRandomSDSS, self).__init__(files)
 
     @property
     def weight(self): return self.ctlg['weight']
         
+
 class wrapObservedSDSS(wrapSDSS):
+    """Catalog wrapper with SDSS observed catalog weights."""
     def __init__(self, files):
         super(wrapObservedSDSS, self).__init__(files)
 
