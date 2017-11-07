@@ -4,11 +4,11 @@ class configuration(object):
     def outputLocation(self):
         return "."
 
-    def filesRandom(self):
+    def inputFilesRandom(self):
         '''List of random catalog file names.'''
         pass
     
-    def filesObserved(self):
+    def inputFilesObserved(self):
         '''List of observed catalog file names.'''
         pass
 
@@ -31,3 +31,6 @@ class configuration(object):
     @property
     def name(self) : return self.__class__.__name__
         
+    def stageFileName(self, stage):
+        return '/'.join([self.outputLocation().rstrip('/'),
+                         "%s_%s.fits" % (self.name, str(stage))])

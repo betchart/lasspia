@@ -5,19 +5,19 @@ class cmassS(baofast.configuration):
 
     def dataDir(self):
         """Directory of catalog files."""
-        return '../data/'
+        return 'data/'
 
     def outputLocation(self):
         return self.dataDir()
 
-    def filesRandom(self):
+    def inputFilesRandom(self):
         return [self.dataDir() + "randoms_DR9_CMASS_South.fits"]
 
-    def filesObserved(self):
+    def inputFilesObserved(self):
         return [self.dataDir() + "galaxies_DR9_CMASS_South.fits"]
 
-    def catalogRandom(self): return baofast.wrapRandomSDSS(self.filesRandom())
-    def catalogObserved(self): return baofast.wrapObservedSDSS(self.filesObserved())
+    def catalogRandom(self): return baofast.wrapRandomSDSS(self.inputFilesRandom())
+    def catalogObserved(self): return baofast.wrapObservedSDSS(self.inputFilesObserved())
 
     def binsZ(self): return np.arange(0.4, 0.72, 0.01)
     def binsRA(self): return np.arange(100, 270.001, 1./30) # FIXME periodic boundary conditions
