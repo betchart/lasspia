@@ -1,11 +1,14 @@
 import baofast
 import numpy as np
 
-class cmassN(baofast.analysis):
+class cmassN(baofast.configuration):
 
     def dataDir(self):
         """Directory of catalog files."""
         return '../data/'
+
+    def outputLocation(self):
+        return self.dataDir()
 
     def filesRandom(self):
         return [self.dataDir() + "randoms_DR9_CMASS_North.fits"]

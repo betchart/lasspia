@@ -1,7 +1,8 @@
 
-"""Configuration: Stage 1 (Preprocessing)"""
+class configuration(object):
 
-class analysis(object):
+    def outputLocation(self):
+        return "."
 
     def filesRandom(self):
         '''List of random catalog file names.'''
