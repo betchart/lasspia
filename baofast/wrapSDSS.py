@@ -26,10 +26,8 @@ class wrapSDSS(object):
 
     @property
     def ra(self):
-        if not self.shiftRA:                      # ra <- [0..360]
-            return self.ctlg['ra']
-        else:                                     # ra <- [-180..180]
-            return self.ctlg['ra'] - (360 * (180 <= self.ctlg['ra']))
+        a = self.ctlg['ra']
+        return np.where(a < 180, a, a - 360) if self.shiftRA else a
 
     @property
     def dec(self): return self.ctlg['dec']
