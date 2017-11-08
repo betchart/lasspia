@@ -16,9 +16,12 @@ class cmassS(baofast.configuration):
     def inputFilesObserved(self):
         return [self.dataDir() + "galaxies_DR9_CMASS_South.fits"]
 
-    def catalogRandom(self): return baofast.wrapRandomSDSS(self.inputFilesRandom())
-    def catalogObserved(self): return baofast.wrapObservedSDSS(self.inputFilesObserved())
+    def catalogRandom(self):
+        return baofast.wrapRandomSDSS(self.inputFilesRandom(), shiftRA=True)
+
+    def catalogObserved(self):
+        return baofast.wrapObservedSDSS(self.inputFilesObserved(), shiftRA=True)
 
     def binsZ(self): return np.arange(0.4, 0.72, 0.01)
-    def binsRA(self): return np.arange(100, 270.001, 1./30) # FIXME periodic boundary conditions
+    def binsRA(self): return np.arange(-50, 50, 1./30)
     def binsDec(self): return np.arange(-10, 20, 0.1)

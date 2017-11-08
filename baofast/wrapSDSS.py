@@ -17,14 +17,19 @@ class wrapSDSS(object):
     * ra: right ascension
     * dec: declination
     """
-    def __init__(self, files):
+    def __init__(self, files, shiftRA=False):
         self.ctlg = openSDSS(files)
+        self.shiftRA = shiftRA
 
     @property
     def z(self): return self.ctlg['z']
 
     @property
-    def ra(self): return self.ctlg['ra']
+    def ra(self):
+        if not self.shiftRA:                      # ra <- [0..360]
+            return self.ctlg['ra']
+        else:                                     # ra <- [-180..180]
+            return self.ctlg['ra'] - (360 * (180 <= self.ctlg['ra']))
 
     @property
     def dec(self): return self.ctlg['dec']
@@ -35,8 +40,8 @@ class wrapSDSS(object):
 
 class wrapRandomSDSS(wrapSDSS):
     """Catalog wrapper with SDSS random catalog weights."""
-    def __init__(self, files):
-        super(wrapRandomSDSS, self).__init__(files)
+    def __init__(self, files, shiftRA=False):
+        super(wrapRandomSDSS, self).__init__(files,shiftRA)
 
     @property
     def weight(self): return self.ctlg['weight']
@@ -44,8 +49,8 @@ class wrapRandomSDSS(wrapSDSS):
 
 class wrapObservedSDSS(wrapSDSS):
     """Catalog wrapper with SDSS observed catalog weights."""
-    def __init__(self, files):
-        super(wrapObservedSDSS, self).__init__(files)
+    def __init__(self, files, shiftRA=False):
+        super(wrapObservedSDSS, self).__init__(files,shiftRA)
 
     @property
     def weight(self):
