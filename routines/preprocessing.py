@@ -58,7 +58,6 @@ class preprocessing(baofast.routine):
         return hdu
 
     def Rang(self, ctlg):
-
         frq, xedges, yedges = np.histogram2d(ctlg.ra, ctlg.dec,
                                              [self.config.binsRA(),
                                               self.config.binsDec()])
@@ -75,6 +74,3 @@ class preprocessing(baofast.routine):
 
         return hdu
 
-# use scipy.stats.binned_statistic if want to keep mean value
-
-# consider storing bin centers rather than edges
