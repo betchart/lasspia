@@ -16,6 +16,8 @@ class combinatorial(baofast.routine):
 
         self.sinDec = np.sin(binsDec)
         self.cosDec = np.cos(binsDec)
+        self.prodSinDec = np.multiply.outer(self.sinDec,self.sinDec)
+        self.prodCosDec = np.multiply.outer(self.cosDec,self.cosDec)
         self.cosDeltaRA = np.cos(np.subtract.outer(binsRA,binsRA))
 
         for i in range(len(rAng)):
@@ -24,10 +26,8 @@ class combinatorial(baofast.routine):
 
     def cosThetaRow(self, i, rAng):
         return (self.cosDeltaRA[rAng["binRA"][i], rAng["binRA"][i:]] *
-                self.cosDec[rAng["binDec"][i]] *
-                self.cosDec[rAng["binDec"][i:]] +
-                self.sinDec[rAng["binDec"][i]] *
-                self.sinDec[rAng["binDec"][i:]] )
+                self.prodCosDec[rAng["binDec"][i], rAng["binDec"][i:]] +
+                self.prodSinDec[rAng["binDec"][i], rAng["binDec"][i:]] )
 
     @property
     def inputFileName(self):
