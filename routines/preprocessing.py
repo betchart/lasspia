@@ -62,14 +62,14 @@ class preprocessing(baofast.routine):
         frq, xedges, yedges = np.histogram2d(ctlg.ra, ctlg.dec,
                                              [self.config.binsRA(),
                                               self.config.binsDec()])
-        xx, yy = np.meshgrid(range(len(xedges)), range(len(yedges)))
+        xx, yy = np.meshgrid(range(len(xedges)-1), range(len(yedges)-1))
 
-        rang = np.array(zip(xx.flat, yy.flat, frq.flat),
+        rang = np.array(zip(xx.flat, yy.flat, frq.T.flat),
                         dtype = [("binRA", self.iType(len(xedges))),
                                  ("binDec", self.iType(len(yedges))),
                                  ("count", self.iType(max(frq.flat)))])
 
-        hdu = fits.BinTableHDU(rang[frq.flat>0], name="Rang")
+        hdu = fits.BinTableHDU(rang[rang["count"]>0], name="Rang")
         #hdu.header['name'] = ("Rang", "Sparse 2D angular distribution, random catalog.")
         self.addProvenance(hdu, self.config.inputFilesRandom())
 

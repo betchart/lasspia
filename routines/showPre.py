@@ -1,7 +1,7 @@
 import baofast
 from astropy.io import fits
 
-class viewPre(baofast.routine):
+class showPre(baofast.routine):
 
     def __call__(self):
         self.openPre()
