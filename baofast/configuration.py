@@ -1,3 +1,4 @@
+import numpy as np
 
 class configuration(object):
 
@@ -12,18 +13,16 @@ class configuration(object):
         '''List of observed catalog file names.'''
         pass
 
-    def binsZ(self):
-        """Lower bin edges and uppermost edge of P_z"""
-        pass
+    # np.histogram is faster for bins defined by integer and range than for those defined by edge array
+    def binningZ(self): pass
+    def binningRA(self): pass
+    def binningDec(self): pass
+    def binningCosTheta(self): pass
 
-    def binsRA(self):
-        """Lower bin edges and uppermost edge of R_ang(ra,dec): ra"""
-        pass
-
-    def binsDec(self):
-        """Lower bin edges and uppermost edge of R_ang(ra,dec): dec"""
-        pass
-
+    def edgesZ(self): return self.edgesFromBinning(self.binningZ())
+    def edgesRA(self): return self.edgesFromBinning(self.binningRA())
+    def edgesDec(self): return self.edgesFromBinning(self.binningDec())
+    def edgesCosTheta(self): return self.edgesFromBinning(self.binningCosTheta())
 
     def __init__(self):
         pass
@@ -34,3 +33,15 @@ class configuration(object):
     def stageFileName(self, stage):
         return '/'.join([self.outputLocation().rstrip('/'),
                          "%s_%s.fits" % (self.name, str(stage))])
+
+    @staticmethod
+    def binning2D(binningX, binningY):
+        binning = {"bins": [binningX["bins"], binningY["bins"]]}
+        if "range" in binningX:
+            binning["range"] = [binningX["range"], binningY["range"]]
+        return binning
+
+    @staticmethod
+    def edgesFromBinning(binning):
+        _,edges = np.histogram([], **binning)
+        return edges

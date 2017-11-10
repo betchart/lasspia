@@ -32,8 +32,9 @@ class preprocessing(baofast.routine):
                 np.int64)
 
     def pdfZ(self, ctlg):
-        frq, edges = np.histogram(ctlg.z, self.config.binsZ(),
-                                  weights = ctlg.weight / sum(ctlg.weight))
+        frq, edges = np.histogram(ctlg.z,
+                                  weights = ctlg.weight / sum(ctlg.weight),
+                                  **self.config.binningZ())
 
         pdfz = np.array(zip(edges, frq),
                         dtype = [("lowEdge", np.float64),
@@ -46,21 +47,21 @@ class preprocessing(baofast.routine):
         return hdu
 
     def binCentersRA(self):
-        centers = np.array( self.centers(self.config.binsRA()),
+        centers = np.array( self.centers(self.config.edgesRA()),
                             dtype = [("binCenter", np.float64)])
         hdu = fits.BinTableHDU(centers, name="centerRA")
         return hdu
 
     def binCentersDec(self):
-        centers = np.array( self.centers(self.config.binsDec()),
+        centers = np.array( self.centers(self.config.edgesDec()),
                             dtype = [("binCenter", np.float64)])
         hdu = fits.BinTableHDU(centers, name="centerDec")
         return hdu
 
     def Rang(self, ctlg):
         frq, xedges, yedges = np.histogram2d(ctlg.ra, ctlg.dec,
-                                             [self.config.binsRA(),
-                                              self.config.binsDec()])
+                                             **self.config.binning2D(self.config.binningRA(),
+                                                                     self.config.binningDec()))
         xx, yy = np.meshgrid(range(len(xedges)-1), range(len(yedges)-1))
 
         rang = np.array(zip(xx.flat, yy.flat, frq.T.flat),

@@ -22,8 +22,9 @@ class cmassS(baofast.configuration):
     def catalogObserved(self):
         return baofast.wrapObservedSDSS(self.inputFilesObserved(), shiftRA=True)
 
-    def binsZ(self): return np.arange(0.4, 0.72, 0.01)
-    def binsRA(self): return np.arange(-50, 50, 1./30)
-    def binsDec(self): return np.arange(-10, 20, 0.1)
-
-    def chunkSize(self) : return 7000
+    def binningZ(self): return {"bins":300, "range":(0.4,0.7)}
+    def binningRA(self): return {"bins": 3000, "range":(-50,50)}
+    def binningDec(self): return {"bins":300, "range":(-10,20)}
+    def binningCosTheta(self): return {"bins":1000, "range":(-1,1)}
+    
+    def chunkSize(self) : return 7500

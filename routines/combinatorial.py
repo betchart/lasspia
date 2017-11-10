@@ -13,8 +13,6 @@ class combinatorial(baofast.routine):
         binsRA = DEGTORAD * self.getPre("centerRA").data["binCenter"]
         self.rAng = self.getPre("RANG").data
 
-        # calculate and histogram first row dTheta12, weighted with R1*R2
-
         self.sinDec = np.sin(binsDec)
         self.cosDec = np.cos(binsDec)
         self.prodSinDec = np.multiply.outer(self.sinDec,self.sinDec)
@@ -24,14 +22,11 @@ class combinatorial(baofast.routine):
         splits = range(0, len(self.rAng), self.config.chunkSize())
         slices = [slice(i,j) for i,j in zip(splits,splits[1:]+[None])]
 
-        binsTheta = 1000
-        cosThetaEdges = np.linspace(-1,1,1+binsTheta)
-        
         typeRR = np.int64
-        RR = np.zeros(len(cosThetaEdges)-1, dtype=typeRR)
+        RR = np.zeros(len(self.config.edgesCosTheta())-1, dtype=typeRR)
 
         chunks = [(slices[i],jSlice) for i in range(len(slices)) for jSlice in slices[i:]]
-        trunc = 53
+        trunc = 5
         print "There are %d chunks" % len(chunks)
         if trunc: print "Truncating after %d chunks" % trunc
 
@@ -39,14 +34,15 @@ class combinatorial(baofast.routine):
             chunkCT = self.cosThetaChunk(slice1, slice2)
             countcount = np.multiply.outer(self.rAng["count"][slice1], self.rAng["count"][slice2]).astype(typeRR)
             if slice1 != slice2: countcount *= 2 # fill histogram with twice-weights
-            frq,outEdges = np.histogram( chunkCT, binsTheta, (-1,1), weights = countcount) # uniform binning faster to histogram than iterable binning
+            frq,_ = np.histogram( chunkCT, weights = countcount,
+                                  **self.config.binningCosTheta())
             RR += frq
             print '.',
             sys.stdout.flush()
         print
         RR /= 2
         outFile = open("points.txt","w")
-        for i,j in zip(cosThetaEdges, RR): print>>outFile, i,j
+        for i,j in zip(self.config.edgesCosTheta(), RR): print>>outFile, i,j
                 
     def cosThetaChunk(self, slice1, slice2):
         return (self.cosDeltaRA[self.rAng["binRA"][slice1]][ :,self.rAng["binRA"][slice2]] *
