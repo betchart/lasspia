@@ -26,25 +26,25 @@ class combinatorial(baofast.routine):
 
         binsTheta = 1000
         cosThetaEdges = np.linspace(-1,1,1+binsTheta)
-        trunc = None
-        #print "Slices: %d" %len(slices), "Truncating after: %d" % trunc
         
         typeRR = np.int64
         RR = np.zeros(len(cosThetaEdges)-1, dtype=typeRR)
 
-        for iS, slice1 in enumerate(slices[:trunc]):
-            print
-            print iS,
+        chunks = [(slices[i],jSlice) for i in range(len(slices)) for jSlice in slices[i:]]
+        trunc = 53
+        print "There are %d chunks" % len(chunks)
+        if trunc: print "Truncating after %d chunks" % trunc
+
+        for slice1,slice2 in chunks[:trunc]:
+            chunkCT = self.cosThetaChunk(slice1, slice2)
+            countcount = np.multiply.outer(self.rAng["count"][slice1], self.rAng["count"][slice2]).astype(typeRR)
+            if slice1 != slice2: countcount *= 2 # fill histogram with twice-weights
+            frq,outEdges = np.histogram( chunkCT, binsTheta, (-1,1), weights = countcount) # uniform binning faster to histogram than iterable binning
+            RR += frq
+            print '.',
             sys.stdout.flush()
-            for slice2 in slices[iS:trunc]:
-                chunkCT = self.cosThetaChunk(slice1, slice2)
-                countcount = np.multiply.outer(self.rAng["count"][slice1], self.rAng["count"][slice2])
-                if slice1==slice2: countcount /= 2
-                frq,outEdges = np.histogram( chunkCT, binsTheta, (-1,1), weights = countcount.astype(np.float32)) # uniform binning faster to histogram than iterable binning
-                RR += frq.astype(typeRR)
-                print '.',
-                sys.stdout.flush()
         print
+        RR /= 2
         outFile = open("points.txt","w")
         for i,j in zip(cosThetaEdges, RR): print>>outFile, i,j
                 
