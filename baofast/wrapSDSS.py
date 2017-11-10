@@ -42,8 +42,17 @@ class wrapRandomSDSS(wrapSDSS):
         super(wrapRandomSDSS, self).__init__(files,shiftRA)
 
     @property
-    def weight(self): return self.ctlg['weight']
-        
+    def weight(self): return self.weightZ
+
+    @property
+    def weightZ(self):
+        '''Z-dependent weight.'''
+        return self.ctlg['weight']
+
+    @property
+    def weightNoZ(self):
+        '''Z-independent weight.'''
+        return None
 
 class wrapObservedSDSS(wrapSDSS):
     """Catalog wrapper with SDSS observed catalog weights."""

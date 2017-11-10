@@ -33,7 +33,7 @@ class preprocessing(baofast.routine):
 
     def pdfZ(self, ctlg):
         frq, edges = np.histogram(ctlg.z,
-                                  weights = ctlg.weight / sum(ctlg.weight),
+                                  weights = ctlg.weightZ / sum(ctlg.weightZ),
                                   **self.config.binningZ())
 
         pdfz = np.array(zip(edges, frq),
@@ -59,7 +59,7 @@ class preprocessing(baofast.routine):
         return hdu
 
     def Rang(self, ctlg):
-        frq, xedges, yedges = np.histogram2d(ctlg.ra, ctlg.dec,
+        frq, xedges, yedges = np.histogram2d(ctlg.ra, ctlg.dec, weights=ctlg.weightNoZ,
                                              **self.config.binning2D(self.config.binningRA(),
                                                                      self.config.binningDec()))
         xx, yy = np.meshgrid(range(len(xedges)-1), range(len(yedges)-1))
