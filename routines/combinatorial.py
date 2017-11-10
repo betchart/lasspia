@@ -22,6 +22,12 @@ class combinatorial(baofast.routine):
         splits = range(0, len(self.rAng), self.config.chunkSize())
         slices = [slice(i,j) for i,j in zip(splits,splits[1:]+[None])]
 
+        # Full arrays of indices can work in place of slices.
+        # A slight penalty is incurred, but makes regioning possible.
+        # Regioning would be important in the case of a full-sky dataset
+        # slices = [range(len(self.rAng))[slice(i,j)]
+        #           for i,j in zip(splits,splits[1:]+[None])]
+
         typeRR = np.int64
         RR = np.zeros(len(self.config.edgesCosTheta())-1, dtype=typeRR)
 
@@ -32,7 +38,8 @@ class combinatorial(baofast.routine):
 
         for slice1,slice2 in chunks[:trunc]:
             chunkCT = self.cosThetaChunk(slice1, slice2)
-            countcount = np.multiply.outer(self.rAng["count"][slice1], self.rAng["count"][slice2]).astype(typeRR)
+            countcount = np.multiply.outer(self.rAng["count"][slice1],
+                                           self.rAng["count"][slice2]).astype(typeRR)
             if slice1 != slice2: countcount *= 2 # fill histogram with twice-weights
             frq,_ = np.histogram( chunkCT, weights = countcount,
                                   **self.config.binningCosTheta())
