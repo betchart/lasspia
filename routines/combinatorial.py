@@ -2,6 +2,7 @@ import baofast
 import math
 import numpy as np
 from astropy.io import fits
+import sys
 
 DEGTORAD = math.pi / 180
 
@@ -20,13 +21,33 @@ class combinatorial(baofast.routine):
         self.prodCosDec = np.multiply.outer(self.cosDec,self.cosDec)
         self.cosDeltaRA = np.cos(np.subtract.outer(binsRA,binsRA))
 
-        print len(self.rAng)
-        print len(self.rAng)**2
-        chunk = self.cosThetaChunk(slice(self.config.chunkSize()),
-                                   slice(self.config.chunkSize()))
-        print len(chunk.flat)
-        print len(chunk.flat) / float(len(self.rAng)**2)
+        splits = range(0, len(self.rAng), self.config.chunkSize())
+        slices = [slice(i,j) for i,j in zip(splits,splits[1:]+[None])]
 
+        binsTheta = 1000
+        cosThetaEdges = np.linspace(-1,1,1+binsTheta)
+        trunc = None
+        #print "Slices: %d" %len(slices), "Truncating after: %d" % trunc
+        
+        typeRR = np.int64
+        RR = np.zeros(len(cosThetaEdges)-1, dtype=typeRR)
+
+        for iS, slice1 in enumerate(slices[:trunc]):
+            print
+            print iS,
+            sys.stdout.flush()
+            for slice2 in slices[iS:trunc]:
+                chunkCT = self.cosThetaChunk(slice1, slice2)
+                countcount = np.multiply.outer(self.rAng["count"][slice1], self.rAng["count"][slice2])
+                if slice1==slice2: countcount /= 2
+                frq,outEdges = np.histogram( chunkCT, binsTheta, (-1,1), weights = countcount.astype(np.float32)) # uniform binning faster to histogram than iterable binning
+                RR += frq.astype(typeRR)
+                print '.',
+                sys.stdout.flush()
+        print
+        outFile = open("points.txt","w")
+        for i,j in zip(cosThetaEdges, RR): print>>outFile, i,j
+                
     def cosThetaChunk(self, slice1, slice2):
         return (self.cosDeltaRA[self.rAng["binRA"][slice1]][ :,self.rAng["binRA"][slice2]] *
                 self.prodCosDec[self.rAng["binDec"][slice1]][:,self.rAng["binDec"][slice2]] +
