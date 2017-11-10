@@ -31,12 +31,12 @@ class combinatorial(baofast.routine):
         typeRR = np.int64
         RR = np.zeros(len(self.config.edgesTheta())-1, dtype=typeRR)
 
-        chunks = [(slices[i],jSlice) for i in range(len(slices)) for jSlice in slices[i:]]
-        trunc = 47
+        chunks = [(slices[i],jSlice)
+                  for i in range(len(slices))
+                  for jSlice in slices[i:]][self.iJob::self.nJobs]
         print "There are %d chunks" % len(chunks)
-        if trunc: print "Truncating after %d chunks" % trunc
 
-        for slice1,slice2 in chunks[:trunc]:
+        for slice1,slice2 in chunks:
             chunkT = self.thetaChunk(slice1, slice2)
             countcount = np.multiply.outer(self.rAng["count"][slice1],
                                            self.rAng["count"][slice2]).astype(typeRR)
@@ -48,8 +48,9 @@ class combinatorial(baofast.routine):
             sys.stdout.flush()
         print
         RR /= 2
-        outFile = open("points.txt","w")
+        outFile = open(self.outputFileName,"w")
         for i,j in zip(self.config.edgesTheta(), RR): print>>outFile, i,j
+        print "Wrote to ", self.outputFileName
                 
     def thetaChunk(self, slice1, slice2):
         cosTheta = (
