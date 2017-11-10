@@ -17,12 +17,12 @@ class configuration(object):
     def binningZ(self): pass
     def binningRA(self): pass
     def binningDec(self): pass
-    def binningCosTheta(self): pass
+    def binningTheta(self): pass
 
     def edgesZ(self): return self.edgesFromBinning(self.binningZ())
     def edgesRA(self): return self.edgesFromBinning(self.binningRA())
     def edgesDec(self): return self.edgesFromBinning(self.binningDec())
-    def edgesCosTheta(self): return self.edgesFromBinning(self.binningCosTheta())
+    def edgesTheta(self): return self.edgesFromBinning(self.binningTheta())
 
     def __init__(self):
         pass

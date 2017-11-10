@@ -1,5 +1,5 @@
 import baofast
-import numpy as np
+import math
 
 class cmassN(baofast.configuration):
 
@@ -22,6 +22,6 @@ class cmassN(baofast.configuration):
     def binningZ(self): return {"bins":300, "range":(0.4,0.7)}
     def binningRA(self): return {"bins":5100 , "range":(100,270)}
     def binningDec(self): return {"bins":700, "range":(-10,60)}
-    def binningCosTheta(self): return {"bins":1000, "range":(-1,1)}
+    def binningTheta(self): return {"bins":1000, "range":(0,math.pi)}
 
     def chunkSize(self) : return 7500
