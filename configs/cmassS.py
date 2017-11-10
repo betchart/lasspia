@@ -26,4 +26,4 @@ class cmassS(baofast.configuration):
     def binsRA(self): return np.arange(-50, 50, 1./30)
     def binsDec(self): return np.arange(-10, 20, 0.1)
 
-    def chunkSize(self) : return 10000
+    def chunkSize(self) : return 7000
