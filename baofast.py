@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+from baofast import utils
 
 def parseArgs():
     from argparse import ArgumentParser
@@ -13,13 +14,17 @@ def parseArgs():
                         help='A python file containing a subclass of baofast.routine')
 
     parser.add_argument('--nJobs', metavar='nJobs', type=int, nargs=1,
-                        help='Divide the processing into nJobs portions.')
+                        help='Divide the processing into nJobs portions: process all jobs in parallel (with --nCores), or process just one job (with --iJob), or combine job outputs.')
 
     parser.add_argument('--iJob', metavar='iJob', type=int, nargs=1,
-                        help='Index of the job to process.')
+                        help='Index of the job to process (requires --nJobs).')
+
+    parser.add_argument('--nCores', metavar='nCores', type=int, nargs=1,
+                        help='Use nCores in parallel (requires --nJobs).')
 
     args = parser.parse_args()
     return args
+
 
 def getInstance(argFile, args = (), kwargs={}):
     path = argFile[0].split('/')
@@ -28,11 +33,26 @@ def getInstance(argFile, args = (), kwargs={}):
     exec("from %s import %s " % (name, name))
     return eval(name)(*args, **kwargs)
 
+def getKWs(args):
+    if args.nCores: return [{"nJobs":args.nJobs[0], "iJob":i} for i in range(args.nJobs[0])]
+    if args.iJob: return {"nJobs":args.nJobs[0], "iJob":args.iJob[0]}
+    if args.nJobs: return {"nJobs":args.nJobs[0]}
+    return {}
+
 if __name__ == "__main__":
     args = parseArgs()
     config = getInstance(args.configFile)
-    routine = getInstance(args.routineFile, (config,),
-                          {"nJobs":args.nJobs[0], "iJob":args.iJob[0]})
-    routine()
+    kwargs = getKWs(args)
 
-    
+    if type(kwargs) is dict:
+        routine = getInstance(args.routineFile, (config,), kwargs)
+        if args.nJobs and not args.iJob:
+            routine.combineOutput()
+        else: routine()
+
+    elif args.nCores:
+        routines = [getInstance(args.routineFile, (config,), kw) for kw in kwargs]
+        utils.callInParallel( args.nCores[0], routines )
+
+    else:
+        pass

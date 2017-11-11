@@ -8,9 +8,11 @@ class routine(object):
         self.iJob = iJob
         self.hdus = [fits.PrimaryHDU()]
 
-    def jobString(self):
-        if self.iJob is not None:
-            return "-%03d_%d" % (self.iJob, self.nJobs)
+    def jobString(self, iJob=None):
+        if iJob is None:
+            iJob = self.iJob
+        if iJob is not None:
+            return "-%03d_%d" % (iJob, self.nJobs)
         return ""
 
     @property
@@ -26,5 +28,6 @@ class routine(object):
         '''Defined in subclasses.'''
         pass
 
-    def combineJobOutput(self):
-        pass
+    def combineOutput(self):
+        '''Defined in subclasses for paralellizable routines.'''
+        raise Exception("The class '%s(baofast.routine)' does not define 'combineOutput'." % self.__class__.__name__)
