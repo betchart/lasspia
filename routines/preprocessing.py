@@ -22,10 +22,6 @@ class preprocessing(baofast.routine):
                                       "Source data file.")
 
     @staticmethod
-    def centers(leftEdges):
-        return leftEdges[:-1] + 0.5 * (leftEdges[1:] - leftEdges[:-1])
-
-    @staticmethod
     def iType(iMax):
         return (np.int16 if iMax < np.iinfo(np.int16).max else
                 np.int32 if iMax < np.iinfo(np.int32).max else
@@ -47,13 +43,13 @@ class preprocessing(baofast.routine):
         return hdu
 
     def binCentersRA(self):
-        centers = np.array( self.centers(self.config.edgesRA()),
+        centers = np.array( baofast.utils.centers(self.config.edgesRA()),
                             dtype = [("binCenter", np.float64)])
         hdu = fits.BinTableHDU(centers, name="centerRA")
         return hdu
 
     def binCentersDec(self):
-        centers = np.array( self.centers(self.config.edgesDec()),
+        centers = np.array( baofast.utils.centers(self.config.edgesDec()),
                             dtype = [("binCenter", np.float64)])
         hdu = fits.BinTableHDU(centers, name="centerDec")
         return hdu

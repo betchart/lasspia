@@ -1,6 +1,9 @@
 from multiprocessing import JoinableQueue,Process
 import sys,traceback
 
+def centers(leftEdges):
+    return leftEdges[:-1] + 0.5 * (leftEdges[1:] - leftEdges[:-1])
+
 
 def callInParallel(nCores, itemsToCall):
     q = JoinableQueue()
