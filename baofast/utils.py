@@ -1,5 +1,6 @@
 from multiprocessing import JoinableQueue,Process
 import sys,traceback
+from astropy.io import fits
 
 def centers(leftEdges):
     return leftEdges[:-1] + 0.5 * (leftEdges[1:] - leftEdges[:-1])
@@ -26,3 +27,7 @@ class qWorker(object):
                 print e.__class__.__name__,":", e
             q.task_done()
         return
+
+
+def identicalHDUs(nameHDU, hdus1, hdus2):
+    return fits.HDUDiff(hdus1[nameHDU], hdus2[nameHDU]).identical

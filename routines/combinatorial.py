@@ -16,8 +16,8 @@ class ThetaChunker(object):
                 'coscosDec': np.multiply.outer(cosDec,cosDec),
                 'cosDeltaRA': np.cos(np.subtract.outer(centersRA,centersRA))}
 
-    def __init__(self, trig, binsDecRA1, binsDecRA2):
-        for k,v in trig.iteritems(): setattr(self, k, v)
+    def __init__(self, trigPrd, binsDecRA1, binsDecRA2):
+        for k,v in trigPrd.iteritems(): setattr(self, k, v)
         self.binsDec1, self.binsRA1 = binsDecRA1
         self.binsDec2, self.binsRA2 = binsDecRA2
 
@@ -29,11 +29,13 @@ class ThetaChunker(object):
         np.clip(cosTheta,-1,1,out=cosTheta)
         return np.arccos(cosTheta,out=cosTheta)
 
+
 class combinatorial(baofast.routine):
 
     def __call__(self):
-        self.trig = ThetaChunker.trigProducts(DEGTORAD * self.getPre("centerDec").data["binCenter"],
-                                              DEGTORAD * self.getPre("centerRA").data["binCenter"] )
+        self.trig = ThetaChunker.trigProducts(
+            DEGTORAD * self.getPre("centerDec").data["binCenter"],
+            DEGTORAD * self.getPre("centerRA").data["binCenter"] )
 
         self.hdus.append( self.binCentersTheta() )
         self.hdus.append( self.fTheta() )
@@ -81,4 +83,21 @@ class combinatorial(baofast.routine):
         return hdulist[name]
 
     def combineOutput(self):
-        print "Pending definition of combineOutput"
+        jobFiles = [self.outputFileName + self.jobString(iJob)
+                    for iJob in range(self.nJobs)]
+
+        jobHDUs = [fits.open(f) for f in jobFiles]
+
+        assert all([baofast.utils.identicalHDUs("centerTheta", jobHDUs[0], h)
+                    for h in jobHDUs])
+        self.hdus.append(jobHDUs[0]["centerTheta"])
+
+        fTheta = jobHDUs[0]['fTheta']
+        fTheta.data['count'] = np.zeros(fTheta.data['count'].shape,
+                                   dtype=fTheta.data['count'].dtype)
+        for hdu in jobHDUs:
+            fTheta.data['count'] += hdu['fTheta'].data['count']
+        fTheta.data['count'] /= 2
+        self.hdus.append(fTheta)
+
+        self.writeToFile()
