@@ -6,59 +6,71 @@ import sys
 
 DEGTORAD = math.pi / 180
 
+class ThetaChunker(object):
+
+    @staticmethod
+    def trigProducts(centersDec, centersRA):
+        sinDec = np.sin(centersDec)
+        cosDec = np.cos(centersDec)
+        return {'sinsinDec': np.multiply.outer(sinDec,sinDec),
+                'coscosDec': np.multiply.outer(cosDec,cosDec),
+                'cosDeltaRA': np.cos(np.subtract.outer(centersRA,centersRA))}
+
+    def __init__(self, trig, binsDecRA1, binsDecRA2):
+        for k,v in trig.iteritems(): setattr(self, k, v)
+        self.binsDec1, self.binsRA1 = binsDecRA1
+        self.binsDec2, self.binsRA2 = binsDecRA2
+
+    def __call__(self, slice1, slice2):
+        cosTheta = (
+            self.cosDeltaRA[self.binsRA1[slice1]][ :,self.binsRA2[slice2]] *
+            self.coscosDec[self.binsDec1[slice1]][:,self.binsDec2[slice2]] +
+            self.sinsinDec[self.binsDec1[slice1]][:,self.binsDec2[slice2]])
+        np.clip(cosTheta,-1,1,out=cosTheta)
+        return np.arccos(cosTheta,out=cosTheta)
+
 class combinatorial(baofast.routine):
 
     def __call__(self):
-        binsDec = DEGTORAD * self.getPre("centerDec").data["binCenter"]
-        binsRA = DEGTORAD * self.getPre("centerRA").data["binCenter"]
-        self.rAng = self.getPre("RANG").data
+        self.trig = ThetaChunker.trigProducts(DEGTORAD * self.getPre("centerDec").data["binCenter"],
+                                              DEGTORAD * self.getPre("centerRA").data["binCenter"] )
 
-        self.sinDec = np.sin(binsDec)
-        self.cosDec = np.cos(binsDec)
-        self.sinsinDec = np.multiply.outer(self.sinDec,self.sinDec)
-        self.coscosDec = np.multiply.outer(self.cosDec,self.cosDec)
-        self.cosDeltaRA = np.cos(np.subtract.outer(binsRA,binsRA))
+        self.hdus.append( self.binCentersTheta() )
+        self.hdus.append( self.fTheta() )
+        self.writeToFile()
 
-        splits = range(0, len(self.rAng), self.config.chunkSize())
-        slices = [slice(i,j) for i,j in zip(splits,splits[1:]+[None])]
+    def binCentersTheta(self):
+        centers = np.array( baofast.utils.centers(self.config.edgesTheta()),
+                            dtype = [("binCenter", np.float64)])
+        hdu = fits.BinTableHDU(centers, name="centerTheta")
+        return hdu
 
-        # Full arrays of indices can work in place of slices.
-        # A slight penalty is incurred, but makes regioning possible.
-        # Regioning would be important in the case of a full-sky dataset
-        # slices = [range(len(self.rAng))[slice(i,j)]
-        #           for i,j in zip(splits,splits[1:]+[None])]
+    def fTheta(self):
+        rAng = self.getPre("RANG").data
+        cType = np.int64 if np.issubdtype(type(rAng["count"][0]), np.integer) else np.float64
+        frq = np.zeros(len(self.config.edgesTheta())-1, dtype=cType)
+        binsDecRA = (rAng['binDec'], rAng['binRA'])
+        thetaChunk = ThetaChunker(self.trig, binsDecRA, binsDecRA)
 
-        typeRR = np.int64
-        RR = np.zeros(len(self.config.edgesTheta())-1, dtype=typeRR)
-
+        splits = range(0, len(rAng), self.config.chunkSize())
+        slices = [slice(i,j) for i,j in zip(splits,splits[1:]+[None])] # full array of indices possible in place of slices: regioning
         chunks = [(slices[i],jSlice)
                   for i in range(len(slices))
                   for jSlice in slices[i:]][self.iJob::self.nJobs]
-        print "There are %d chunks" % len(chunks)
 
         for slice1,slice2 in chunks:
-            chunkT = self.thetaChunk(slice1, slice2)
-            countcount = np.multiply.outer(self.rAng["count"][slice1],
-                                           self.rAng["count"][slice2]).astype(typeRR)
+            chunkT = thetaChunk(slice1, slice2)
+            countcount = np.multiply.outer(rAng["count"][slice1],
+                                           rAng["count"][slice2]).astype(cType)
             if slice1 != slice2: countcount *= 2 # fill histogram with twice-weights
-            frq,_ = np.histogram( chunkT, weights = countcount,
-                                  **self.config.binningTheta())
-            RR += frq
-            print '.',
-            sys.stdout.flush()
-        print
-        RR /= 2
-        outFile = open(self.outputFileName,"w")
-        for i,j in zip(self.config.edgesTheta(), RR): print>>outFile, i,j
-        print "Wrote to ", self.outputFileName
-                
-    def thetaChunk(self, slice1, slice2):
-        cosTheta = (
-            self.cosDeltaRA[self.rAng["binRA"][slice1]][ :,self.rAng["binRA"][slice2]] *
-            self.coscosDec[self.rAng["binDec"][slice1]][:,self.rAng["binDec"][slice2]] +
-            self.sinsinDec[self.rAng["binDec"][slice1]][:,self.rAng["binDec"][slice2]])
-        np.clip(cosTheta,-1,1,out=cosTheta)
-        return np.arccos(cosTheta,out=cosTheta) # clip and arccos add 30% time cost compared to returning cosTheta
+            frq += np.histogram( chunkT, weights = countcount,
+                                 **self.config.binningTheta())[0]
+
+        if self.iJob is None:
+            frq /= 2
+        fTheta = np.array(frq, dtype = [('count',cType)])
+        hdu = fits.BinTableHDU(fTheta, name="fTheta")
+        return hdu
 
     @property
     def inputFileName(self):
@@ -67,4 +79,6 @@ class combinatorial(baofast.routine):
     def getPre(self, name):
         hdulist = fits.open(self.inputFileName)
         return hdulist[name]
-        
+
+    def combineOutput(self):
+        print "Pending definition of combineOutput"
