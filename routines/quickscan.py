@@ -6,6 +6,7 @@ class quickscan(baofast.routine):
         print
         print "%s: %d" % (label, len(ctlg.z))
         print "  Sum of weights: %f" % sum(ctlg.weight)
+        print "  Max weight: %f" % max(ctlg.weight)
         print "  Redshift range: [%f, %f] " % (min(ctlg.z), max(ctlg.z))
         print "  Declination range: [%f, %f]" % (min(ctlg.dec), max(ctlg.dec))
         print "  Right ascension range: [%f, %f]" % (min(ctlg.ra), max(ctlg.ra))
