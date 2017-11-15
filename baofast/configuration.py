@@ -35,10 +35,10 @@ class configuration(object):
                          "%s_%s.fits" % (self.name, str(stage))])
 
     @staticmethod
-    def binning2D(binningX, binningY):
-        binning = {"bins": [binningX["bins"], binningY["bins"]]}
-        if "range" in binningX:
-            binning["range"] = [binningX["range"], binningY["range"]]
+    def binningDD(binnings):
+        binning = {"bins": tuple([b['bins'] for b in binnings])}
+        if "range" in binnings[0]:
+            binning["range"] = [b["range"] for b in binnings]
         return binning
 
     @staticmethod
