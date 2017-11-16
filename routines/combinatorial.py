@@ -62,19 +62,31 @@ class combinatorial(baofast.routine):
                   for jSlice in slices[i:]][self.iJob::self.nJobs]
 
         for slice1,slice2 in chunks:
+            print '.'
             chunkT = thetaChunk(slice1, slice2)
-            countcount = np.multiply.outer(ang["countR"][slice1],
-                                           ang["countR"][slice2]).astype(cType)
-            if slice1 != slice2: countcount *= 2 # fill histogram with twice-weights
-            frq += np.histogram( chunkT, weights = countcount,
+            countR1 = ang["countR"][slice1]
+            countR2 = ang["countR"][slice2]
+            zD1 = angzd[slice2]
+            zD2 = angzd[slice2]
+
+            ccR = np.multiply.outer(countR1, countR2).astype(cType)
+            if slice1 != slice2: ccR *= 2 # fill histogram with twice-weights
+            frq += np.histogram( chunkT, weights = ccR,
                                  **self.config.binningTheta())[0]
 
-            # thetas = np.array(len(slicez) * [chunkT]).T -- 3D
-            # just histogram bin index for z: int16 sufficient
-            # zs = np.array(len(chunkT) * [range(len(zcenters))])
-            # weights = outer( ang['countR'][slice1], angzD['countD'][slice2])
-            # mask zero weights and unravel
-            # gthetaz = np.histogram2D(thetas[mask].flat, zs[mask].flat, weights[mask].flat, binning)
+            iAng, iZ = zD2.nonzero()
+            thetas = chunkT[:,iAng]
+            iZs = np.multiply.outer(np.ones(len(countR1), dtype=np.int16), iZ).astype(np.int16)
+            weight = np.multiply.outer(countR1, zD2.data) # relies on zD2.data in order with zD2.nonzero()
+
+            zBins = zD1.shape[1]
+            binningThetaZ = self.config.binningDD([self.config.binningTheta(),
+                                                   {"bins": zBins, "range":(0,zBins)}])
+
+            grq, x, y = np.histogram2d( thetas.ravel(),
+                                        iZs.ravel(),
+                                        weights=weight.ravel(),
+                                        **binningThetaZ)
 
         if self.iJob is None:
             frq /= 2
