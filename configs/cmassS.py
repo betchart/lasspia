@@ -27,4 +27,4 @@ class cmassS(baofast.configuration):
     def binningDec(self): return {"bins":300, "range":(-10,20)}
     def binningTheta(self): return {"bins":1000, "range":(0,math.pi)}
     
-    def chunkSize(self) : return 3000
+    def chunkSize(self) : return 1000
