@@ -92,13 +92,31 @@ class combinatorial(baofast.routine):
                 return np.histogram2d( thetas.ravel(), iZs.ravel(),
                                        weights=weight.ravel(), **binningThetaZ)[0]
 
-            fTheta += ft(1 if equalSlices else 2)
+            def utzdz(dbCnt):
+                iAng1, iZ1 = zD1.nonzero()
+                iAng2, iZ2 = zD2.nonzero()
+                thetas = chunkT[iAng1][:,iAng2]
+                iZ1s = np.multiply.outer(iZ1.astype(np.int16),
+                                         np.ones(len(iZ2), dtype=np.int16))
+                iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=np.int16),
+                                         iZ2.astype(np.int16))
+                weight = np.multiply.outer(dbCnt * zD1.data, zD2.data)
+                triplets = np.vstack([thetas.ravel(),
+                                      np.minimum(iZ1s,iZ2s).ravel(),
+                                      np.abs(iZ1s-iZ2s).ravel()]).T
+                return np.histogramdd(triplets, weights=weight.ravel(),
+                                      **binningThetaZdZ)[0]
+
+            dbl = 1 if equalSlices else 2
+            fTheta += ft(dbl)
             gThetaZ += gtz(chunkT, countR1, zD2)
             if not equalSlices:
                 gThetaZ += gtz(chunkT.T, countR2, zD1)
+            uThetaZdZ += utzdz(dbl)
 
         if self.iJob is None:
             fTheta /= 2
+            uThetaZdZ /= 2
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
         hdu = fits.BinTableHDU(fThetaRec, name="fTheta")
         hdu2 = fits.ImageHDU(gThetaZ, name="gThetaZ")
