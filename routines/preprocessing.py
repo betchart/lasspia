@@ -83,7 +83,7 @@ class preprocessing(baofast.routine):
                            self.config.inputFilesRandom() +
                            self.config.inputFilesObserved())
 
-        triplets = np.array(zip(ctlgD.ra, ctlgD.dec, ctlgD.z))
+        triplets = np.vstack([ctlgD.ra, ctlgD.dec, ctlgD.z]).T
         frq, edges = np.histogramdd(triplets,
                                     weights=ctlgD.weight,
                                     **binning3D)
