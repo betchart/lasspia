@@ -50,8 +50,20 @@ class combinatorial(baofast.routine):
     def fguOfTheta(self):
         ang = self.getPre("ANG").data
         angzd = csr_matrix(self.getPre("ANGZD").data)
-        cType = np.int64 if np.issubdtype(ang["countR"].dtype, np.integer) else np.float64
-        frq = np.zeros(len(self.config.edgesTheta())-1, dtype=cType)
+
+        tBins = len(self.config.edgesTheta()) - 1
+        zBins = angzd.shape[1]
+        binningiZ = {"bins": zBins, "range":(0,zBins)}
+        binningTheta = self.config.binningTheta()
+        binningThetaZ = self.config.binningDD([binningTheta, binningiZ])
+        binningThetaZdZ = self.config.binningDD([binningTheta, binningiZ, binningiZ])
+
+        typeR = np.int64 if np.issubdtype(ang["countR"].dtype, np.integer) else np.float64
+        typeD = np.int64 if np.issubdtype(angzd.dtype, np.integer) else np.float64
+        typeDR = np.int64 if np.issubdtype(typeR, np.integer) and np.issubdtype(typeD, np.integer) else np.float64
+        fTheta = np.zeros(tBins, dtype=typeR)
+        gThetaZ = np.zeros((tBins, zBins), dtype=typeDR)
+        uThetaZdZ = np.zeros((tBins, zBins, zBins), dtype=typeD)
 
         thetaChunk = ThetaChunker(
             DEGTORAD * self.getPre("centerDec").data["binCenter"],
@@ -62,35 +74,35 @@ class combinatorial(baofast.routine):
             equalSlices = slice1 == slice2
             print '.'
             chunkT = thetaChunk(slice1, slice2)
-            countR1 = ang["countR"][slice1]
-            countR2 = ang["countR"][slice2]
-            zD1 = angzd[slice2]
-            zD2 = angzd[slice2]
+            countR1 = ang["countR"][slice1].astype(fTheta.dtype)
+            countR2 = ang["countR"][slice2].astype(fTheta.dtype)
+            zD1 = angzd[slice2].astype(gThetaZ.dtype)
+            zD2 = angzd[slice2].astype(gThetaZ.dtype)
 
-            ccR = np.multiply.outer(countR1, countR2).astype(frq.dtype)
-            if not equalSlices: ccR *= 2 # fill histogram with twice-weights
-            frq += np.histogram( chunkT, weights = ccR,
-                                 **self.config.binningTheta())[0]
+            def ft(dbCnt):
+                ccR = np.multiply.outer(dbCnt * countR1, countR2)
+                return np.histogram( chunkT, weights=ccR, **binningTheta)[0]
 
-            iAng, iZ = zD2.nonzero()
-            thetas = chunkT[:,iAng]
-            iZs = np.multiply.outer(np.ones(len(countR1), dtype=np.int16), iZ.astype(np.int16))
-            weight = np.multiply.outer(countR1, zD2.data) # relies on zD2.data in order with zD2.nonzero()
+            def gtz(cT, countR, zD):
+                iAng, iZ = zD.nonzero()
+                thetas = cT[:,iAng]
+                iZs = np.multiply.outer(np.ones(len(countR), dtype=np.int16),
+                                        iZ.astype(np.int16))
+                weight = np.multiply.outer(countR, zD.data) # zD.data aligned w zD.nonzero()?
+                return np.histogram2d( thetas.ravel(), iZs.ravel(),
+                                       weights=weight.ravel(), **binningThetaZ)[0]
 
-            zBins = zD1.shape[1]
-            binningThetaZ = self.config.binningDD([self.config.binningTheta(),
-                                                   {"bins": zBins, "range":(0,zBins)}])
-
-            grq, x, y = np.histogram2d( thetas.ravel(),
-                                        iZs.ravel(),
-                                        weights=weight.ravel(),
-                                        **binningThetaZ)
+            fTheta += ft(1 if equalSlices else 2)
+            gThetaZ += gtz(chunkT, countR1, zD2)
+            if not equalSlices:
+                gThetaZ += gtz(chunkT.T, countR2, zD1)
 
         if self.iJob is None:
-            frq /= 2
-        fTheta = np.array(frq, dtype = [('count',frq.dtype)])
-        hdu = fits.BinTableHDU(fTheta, name="fTheta")
-        return [hdu]
+            fTheta /= 2
+        fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
+        hdu = fits.BinTableHDU(fThetaRec, name="fTheta")
+        hdu2 = fits.ImageHDU(gThetaZ, name="gThetaZ")
+        return [hdu, hdu2]
 
     @property
     def inputFileName(self):
