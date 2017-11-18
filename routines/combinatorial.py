@@ -25,6 +25,41 @@ class ThetaChunker(object):
         np.clip(cosTheta,-1,1,out=cosTheta)
         return np.arccos(cosTheta,out=cosTheta)
 
+class Chunker(object):
+    def __init__(self, comb):
+        self.ang = comb.getPre("ANG").data
+        self.angzd = csr_matrix(comb.getPre("ANGZD").data)
+
+        self.thetaChunk = ThetaChunker(
+            DEGTORAD * comb.getPre("centerDec").data["binCenter"],
+            DEGTORAD * comb.getPre("centerRA").data["binCenter"],
+            self.ang['binDec'], self.ang['binRA'])
+
+        self.typeR = self.largeType(self.ang['countR'])
+        self.typeD = self.largeType(self.angzd)
+        self.typeDR = type(self.typeR()*self.typeD())
+
+        self.zBins = self.angzd.shape[1]
+        self.invThetaBinWidth = (
+            lambda d: d['bins'] / (d['range'][1] - d['range'][0])
+        )(comb.config.binningTheta())
+
+    @staticmethod
+    def largeType(a):
+        return np.int64 if np.issubdtype(a.dtype, np.integer) else np.float64
+
+    def set(self, slice1, slice2):
+        self.countR1 = self.ang["countR"][slice1].astype(self.typeR)
+        self.countR2 = self.ang["countR"][slice2].astype(self.typeR)
+
+        self.zD1 = self.angzd[slice1].astype(self.typeDR)
+        self.zD2 = self.angzd[slice2].astype(self.typeDR)
+
+        self.thetas = self.thetaChunk(slice1, slice2)
+        self.iThetas = (self.invThetaBinWidth * self.thetas).astype(np.int16)
+        self.ii = slice1 == slice2
+        self.dbl = 1 if self.ii else 2
+
 
 class combinatorial(baofast.routine):
 
@@ -48,46 +83,25 @@ class combinatorial(baofast.routine):
                 for jSlice in slices[i:]][self.iJob::self.nJobs]
 
     def fguInit(self, typeR, typeD, zBins):
-        tR = np.int64 if np.issubdtype(typeR, np.integer) else np.float64
-        tD = np.int64 if np.issubdtype(typeD, np.integer) else np.float64
-        tDR = np.int64 if (np.issubdtype(typeR, np.integer) and
-                           np.issubdtype(typeD, np.integer)) else np.float64
-
         tBins = self.config.binningTheta()['bins']
-        return (np.zeros(tBins, dtype=tR),
-                csr_matrix((tBins, zBins), dtype=tDR),
-                csr_matrix((tBins, zBins*zBins), dtype=tD))
+        return (np.zeros(tBins, dtype=typeR),
+                csr_matrix((tBins, zBins), dtype=type(typeR()*typeD())),
+                csr_matrix((tBins, zBins*zBins), dtype=typeD))
 
     def fguOfTheta(self):
-        ang = self.getPre("ANG").data
-        angzd = csr_matrix(self.getPre("ANGZD").data)
-
-        thetaChunk = ThetaChunker(
-            DEGTORAD * self.getPre("centerDec").data["binCenter"],
-            DEGTORAD * self.getPre("centerRA").data["binCenter"],
-            ang['binDec'], ang['binRA'])
-
-        zBins = angzd.shape[1]
-        invThetaBinWidth = (
-            lambda d: d['bins'] / (d['range'][1] - d['range'][0])
-        )(self.config.binningTheta())
+        ch = Chunker(self)
 
         (fTheta,
          gThetaZ,
-         uThetaZZ) = self.fguInit(ang['countR'].dtype, angzd.dtype, zBins)
+         uThetaZZ) = self.fguInit(ch.typeR, ch.typeD, ch.zBins)
 
-        for slice1,slice2 in self.chunks(len(ang)):
+        for chunk in self.chunks(len(ch.ang)):
             print '.'
-            thetas = thetaChunk(slice1, slice2)
-            iThetas = (thetas * invThetaBinWidth).astype(np.int16)
-            countR1 = ang["countR"][slice1].astype(fTheta.dtype)
-            countR2 = ang["countR"][slice2].astype(fTheta.dtype)
-            zD1 = angzd[slice2].astype(gThetaZ.dtype)
-            zD2 = angzd[slice2].astype(gThetaZ.dtype)
+            ch.set(*chunk)
 
-            def ft(dbCnt):
-                ccR = np.multiply.outer(dbCnt * countR1, countR2)
-                return np.histogram( thetas, weights=ccR, **self.config.binningTheta())[0]
+            def ft():
+                ccR = np.multiply.outer(ch.dbl * ch.countR1, ch.countR2)
+                return np.histogram( ch.thetas, weights=ccR, **self.config.binningTheta())[0]
 
             def gtz(iTh, countR, zD):
                 iAng, iZ = zD.nonzero()
@@ -96,25 +110,23 @@ class combinatorial(baofast.routine):
                 return csr_matrix((weight.flat, (iTh[:,iAng].flat, iZs.flat)),
                                   shape=gThetaZ.shape)
 
-            def utzz(dbCnt):
-                iAng1, iZ1 = zD1.nonzero()
-                iAng2, iZ2 = zD2.nonzero()
-                iTh = iThetas[iAng1][:,iAng2]
+            def utzz():
+                iAng1, iZ1 = ch.zD1.nonzero()
+                iAng2, iZ2 = ch.zD2.nonzero()
+                iTh = ch.iThetas[iAng1][:,iAng2]
                 iZ1s = np.multiply.outer(iZ1, np.ones(len(iZ2), dtype=iZ2.dtype))
                 iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=iZ1.dtype), iZ2)
-                weight = np.multiply.outer(dbCnt * zD1.data, zD2.data)
+                weight = np.multiply.outer(ch.dbl * ch.zD1.data, ch.zD2.data)
 
-                iZZs = zBins*iZ1s + iZ2s
+                iZZs = ch.zBins*iZ1s + iZ2s
                 return csr_matrix((weight.flat, (iTh.flat, iZZs.flat)),
                                   shape=uThetaZZ.shape)
 
-            ii = slice1 == slice2
-            dbl = 1 if ii else 2
-            fTheta += ft(dbl)
-            uThetaZZ += utzz(dbl)
-            gThetaZ += gtz(iThetas, countR1, zD2)
-            if not ii:
-                gThetaZ += gtz(iThetas.T, countR2, zD1)
+            fTheta += ft()
+            uThetaZZ += utzz()
+            gThetaZ += gtz(ch.iThetas, ch.countR1, ch.zD2)
+            if not ch.ii:
+                gThetaZ += gtz(ch.iThetas.T, ch.countR2, ch.zD1)
             pass
 
         if self.iJob is None:
