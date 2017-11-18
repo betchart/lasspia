@@ -47,7 +47,7 @@ class combinatorial(baofast.routine):
                 for i in range(len(slices))
                 for jSlice in slices[i:]][self.iJob::self.nJobs]
 
-    def fguInitialized(self, typeR, typeD, zBins):
+    def fguInit(self, typeR, typeD, zBins):
         tR = np.int64 if np.issubdtype(typeR, np.integer) else np.float64
         tD = np.int64 if np.issubdtype(typeD, np.integer) else np.float64
         tDR = np.int64 if (np.issubdtype(typeR, np.integer) and
@@ -68,13 +68,13 @@ class combinatorial(baofast.routine):
             ang['binDec'], ang['binRA'])
 
         zBins = angzd.shape[1]
-        invThetaBinWidth = ( self.config.binningTheta()['bins']
-                             / (self.config.binningTheta()['range'][1] -
-                                self.config.binningTheta()['range'][0]))
+        invThetaBinWidth = (
+            lambda d: d['bins'] / (d['range'][1] - d['range'][0])
+        )(self.config.binningTheta())
 
-        fTheta, gThetaZ, uThetaZZ = self.fguInitialized(ang['countR'].dtype,
-                                                        angzd.dtype,
-                                                        zBins)
+        (fTheta,
+         gThetaZ,
+         uThetaZZ) = self.fguInit(ang['countR'].dtype, angzd.dtype, zBins)
 
         for slice1,slice2 in self.chunks(len(ang)):
             print '.'
@@ -121,10 +121,17 @@ class combinatorial(baofast.routine):
             fTheta /= 2
             uThetaZZ /= 2
 
+        return self.__fguHDU__(fTheta, gThetaZ, uThetaZZ)
+
+    def __fguHDU__(self, fTheta, gThetaZ, uThetaZZ):
+        hdus = []
+
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
-        hdu = fits.BinTableHDU(fThetaRec, name="fTheta")
-        hdu2 = fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ")
-        return [hdu, hdu2]
+
+        hdus.append( fits.BinTableHDU(fThetaRec, name="fTheta"))
+        hdus.append( fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"))
+        #hdus.append( fits.BinTableHDU(self.uThetaZZRec(uThetaZZ), name="uThetaZZ"))
+        return hdus
 
     @property
     def inputFileName(self):
