@@ -63,7 +63,8 @@ class combinatorial(baofast.routine):
         typeDR = np.int64 if np.issubdtype(typeR, np.integer) and np.issubdtype(typeD, np.integer) else np.float64
         fTheta = np.zeros(tBins, dtype=typeR)
         gThetaZ = np.zeros((tBins, zBins), dtype=typeDR)
-        uThetaZdZ = np.zeros((tBins, zBins, zBins), dtype=typeD)
+        #uThetaZdZ = np.zeros((tBins, zBins, zBins), dtype=typeD)
+        uThetaZZ = csr_matrix((tBins, zBins*zBins), dtype=typeD)
 
         thetaChunk = ThetaChunker(
             DEGTORAD * self.getPre("centerDec").data["binCenter"],
@@ -92,31 +93,30 @@ class combinatorial(baofast.routine):
                 return np.histogram2d( thetas.ravel(), iZs.ravel(),
                                        weights=weight.ravel(), **binningThetaZ)[0]
 
-            def utzdz(dbCnt):
+            def utzz(dbCnt):
                 iAng1, iZ1 = zD1.nonzero()
                 iAng2, iZ2 = zD2.nonzero()
                 thetas = chunkT[iAng1][:,iAng2]
-                iZ1s = np.multiply.outer(iZ1.astype(np.int16),
-                                         np.ones(len(iZ2), dtype=np.int16))
-                iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=np.int16),
-                                         iZ2.astype(np.int16))
+                iZ1s = np.multiply.outer(iZ1, np.ones(len(iZ2), dtype=np.int64))
+                iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=np.int64), iZ2)
                 weight = np.multiply.outer(dbCnt * zD1.data, zD2.data)
-                triplets = np.vstack([thetas.ravel(),
-                                      np.minimum(iZ1s,iZ2s).ravel(),
-                                      np.abs(iZ1s-iZ2s).ravel()]).T
-                return np.histogramdd(triplets, weights=weight.ravel(),
-                                      **binningThetaZdZ)[0]
+
+                iZZs = zBins*iZ1s + iZ2s
+                thetas *= tBins/(binningTheta['range'][1]-binningTheta['range'][0])
+                return csr_matrix((weight.ravel(),
+                                   (thetas.astype(np.int16).ravel(), iZZs.ravel())),
+                                  shape=(tBins, zBins*zBins))
 
             dbl = 1 if equalSlices else 2
             fTheta += ft(dbl)
             gThetaZ += gtz(chunkT, countR1, zD2)
             if not equalSlices:
                 gThetaZ += gtz(chunkT.T, countR2, zD1)
-            uThetaZdZ += utzdz(dbl)
+            uThetaZZ += utzz(dbl)
 
         if self.iJob is None:
             fTheta /= 2
-            uThetaZdZ /= 2
+            uThetaZZ /= 2
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
         hdu = fits.BinTableHDU(fThetaRec, name="fTheta")
         hdu2 = fits.ImageHDU(gThetaZ, name="gThetaZ")
