@@ -16,7 +16,7 @@ def parseArgs():
     parser.add_argument('--nJobs', metavar='nJobs', type=int, nargs=1,
                         help='Divide the processing into nJobs portions: process all jobs in parallel (with --nCores), or process just one job (with --iJob), or combine job outputs.')
 
-    parser.add_argument('--iJob', metavar='iJob', type=int, nargs=1,
+    parser.add_argument('--iJob', metavar='iJob', type=int, nargs='+',
                         help='Index of the job to process (requires --nJobs).')
 
     parser.add_argument('--nCores', metavar='nCores', type=int, nargs=1,
@@ -34,8 +34,10 @@ def getInstance(argFile, args = (), kwargs={}):
     return eval(name)(*args, **kwargs)
 
 def getKWs(args):
-    if args.nCores: return [{"nJobs":args.nJobs[0], "iJob":i} for i in range(args.nJobs[0])]
-    if args.iJob: return {"nJobs":args.nJobs[0], "iJob":args.iJob[0]}
+    if args.nCores or args.iJob:
+        n = args.nJobs[0] if args.nJobs else 1
+        jobs = args.iJob if args.iJob else range(args.nJobs[0])
+        return [{"nJobs": n, "iJob":i} for i in jobs]
     if args.nJobs: return {"nJobs":args.nJobs[0]}
     return {}
 
@@ -50,9 +52,9 @@ if __name__ == "__main__":
             routine.combineOutput()
         else: routine()
 
-    elif args.nCores:
+    elif type(kwargs) is list:
         routines = [getInstance(args.routineFile, (config,), kw) for kw in kwargs]
-        utils.callInParallel( args.nCores[0], routines )
+        utils.callInParallel( args.nCores[0] if args.nCores else 1, routines )
 
     else:
         pass
