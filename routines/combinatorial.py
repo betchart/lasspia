@@ -128,7 +128,6 @@ class combinatorial(baofast.routine):
          uThetaZZ) = self.fguInit(ch.typeR, ch.typeD, ch.zBins)
 
         for chunk in self.chunks(len(ch.ang)):
-            print '.'
             ch.set(*chunk)
             fTheta += self.ft(ch)
             uThetaZZ += self.utzz(ch, uThetaZZ.shape)
@@ -149,23 +148,14 @@ class combinatorial(baofast.routine):
          uThetaZZ) = self.fguLoop()
 
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
-
         iTheta, iZdZ = uThetaZZ.nonzero()
-        zBins = np.int16(np.sqrt(uThetaZZ.shape[1]))
-
-        uThetaZZRec = np.array(zip(iTheta,
-                                   iZdZ / zBins,
-                                   iZdZ % zBins,
-                                   uThetaZZ.data.astype(np.float32)),
-                               dtype = [("binTheta", np.int16),
-                                        ("binZ", np.int16),
-                                        ("dBinZ", np.int16),
-                                        ("count", np.float32)
-                               ])
+        c1 = fits.Column(name='binTheta', array = iTheta.astype(np.int16), format='I')
+        c2 = fits.Column(name='binZdZ', array = iZdZ, format='J')
+        c3 = fits.Column(name='count', array = uThetaZZ.data.astype(np.float32), format='E')
 
         return [fits.BinTableHDU(fThetaRec, name="fTheta"),
                 fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"),
-                fits.BinTableHDU(uThetaZZRec, name="uThetaZZ")
+                fits.BinTableHDU.from_columns([c1,c2,c3], name="uThetaZZ")
         ]
 
     @property
