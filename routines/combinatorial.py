@@ -66,7 +66,7 @@ class combinatorial(baofast.routine):
 
     def __call__(self):
         self.hdus.append( self.binCentersTheta() )
-        self.hdus.extend( self.fguOfTheta() )
+        self.hdus.extend( self.fguHDU() )
         self.writeToFile()
 
     def binCentersTheta(self):
@@ -115,7 +115,7 @@ class combinatorial(baofast.routine):
         return csr_matrix((weight.flat, (iTh.flat, iZZs.flat)),
                           shape=shp)
 
-    def fguOfTheta(self):
+    def fguLoop(self):
         ch = Chunker(self)
 
         (fTheta,
@@ -136,17 +136,20 @@ class combinatorial(baofast.routine):
             fTheta /= 2
             uThetaZZ /= 2
 
-        return self.__fguHDU__(fTheta, gThetaZ, uThetaZZ)
+        return (fTheta, gThetaZ, uThetaZZ)
 
-    def __fguHDU__(self, fTheta, gThetaZ, uThetaZZ):
-        hdus = []
+    def fguHDU(self):
+        (fTheta,
+         gThetaZ,
+         uThetaZZ) = self.fguLoop()
 
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
 
-        hdus.append( fits.BinTableHDU(fThetaRec, name="fTheta"))
-        hdus.append( fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"))
-        #hdus.append( fits.BinTableHDU(self.uThetaZZRec(uThetaZZ), name="uThetaZZ"))
-        return hdus
+        return [
+            hdus.append( fits.BinTableHDU(fThetaRec, name="fTheta"))
+            hdus.append( fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"))
+            #hdus.append( fits.BinTableHDU(self.uThetaZZRec(uThetaZZ), name="uThetaZZ"))
+            ]
 
     @property
     def inputFileName(self):
