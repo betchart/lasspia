@@ -27,4 +27,16 @@ class cmassS(baofast.configuration):
     def binningDec(self): return {"bins":300, "range":(-10,20)}
     def binningTheta(self): return {"bins":1000, "range":(0,math.pi)}
     
-    def chunkSize(self) : return 2000
+    def chunkSize(self): return 2000
+
+    def omegasMKL(self):
+        '''Cosmology parameters (\Omega_M, \Omega_K, \Omega_\Lambda).'''
+        return (0.274, 0, 0.726)
+
+    def H0(self):
+        '''Hubble constant in km/s / Mpc'''
+        return 70
+
+    def lightspeed(self):
+        '''Speed of light in km/s'''
+        return 299792
