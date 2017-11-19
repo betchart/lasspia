@@ -66,6 +66,8 @@ class combinatorial(baofast.routine):
 
     def __call__(self):
         self.hdus.append( self.binCentersTheta() )
+        self.hdus.append( self.getPre('centerZ'))
+        self.hdus.append( self.getPre('pdfZ'))
         self.hdus.extend( self.fguHDU() )
         self.writeToFile()
 
