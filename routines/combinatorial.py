@@ -145,11 +145,23 @@ class combinatorial(baofast.routine):
 
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
 
-        return [
-            hdus.append( fits.BinTableHDU(fThetaRec, name="fTheta"))
-            hdus.append( fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"))
-            #hdus.append( fits.BinTableHDU(self.uThetaZZRec(uThetaZZ), name="uThetaZZ"))
-            ]
+        iTheta, iZZ = uThetaZZ.nonzero()
+        zBins = np.int16(np.sqrt(uThetaZZ.shape[1]))
+
+        uThetaZZRec = np.array(zip(iTheta,
+                                   iZZ / zBins,
+                                   iZZ % zBins,
+                                   uThetaZZ.data.astype(np.float32)),
+                               dtype = [("binTheta", np.int16),
+                                        ("binZ1", np.int16),
+                                        ("binZ2", np.int16),
+                                        ("count", np.float32)
+                               ])
+
+        return [fits.BinTableHDU(fThetaRec, name="fTheta"),
+                fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"),
+                fits.BinTableHDU(uThetaZZRec, name="uThetaZZ")
+        ]
 
     @property
     def inputFileName(self):
