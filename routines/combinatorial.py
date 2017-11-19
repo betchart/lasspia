@@ -68,7 +68,7 @@ class combinatorial(baofast.routine):
         self.hdus.append( self.binCentersTheta() )
         self.hdus.append( self.getPre('centerZ'))
         self.hdus.append( self.getPre('pdfZ'))
-        self.hdus.extend( self.fguHDU() )
+        self.hdus.extend( self.fguHDU(*self.fguLoop()) )
         self.writeToFile()
 
     def binCentersTheta(self):
@@ -142,10 +142,7 @@ class combinatorial(baofast.routine):
 
         return (fTheta, gThetaZ, uThetaZZ)
 
-    def fguHDU(self):
-        (fTheta,
-         gThetaZ,
-         uThetaZZ) = self.fguLoop()
+    def fguHDU(self, fTheta, gThetaZ, uThetaZZ):
 
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
         iTheta, iZdZ = uThetaZZ.nonzero()
@@ -170,18 +167,27 @@ class combinatorial(baofast.routine):
         jobFiles = [self.outputFileName + self.jobString(iJob)
                     for iJob in range(self.nJobs)]
 
-        jobHDUs = [fits.open(f) for f in jobFiles]
+        with fits.open(jobFiles[0]) as h0:
+            (fTheta,
+             gThetaZ,
+             uThetaZZ) = self.fguInit(h0['fTheta'].data['count'].dtype.type,
+                                      h0['uThetaZZ'].data['count'].dtype.type,
+                                      len(h0['centerZ'].data))
 
-        assert all([baofast.utils.identicalHDUs("centerTheta", jobHDUs[0], h)
-                    for h in jobHDUs])
-        self.hdus.append(jobHDUs[0]["centerTheta"])
+            for jF in jobFiles:
+                with fits.open(jF) as h:
+                    for name in ['centerTheta','centerZ','pdfZ']:
+                        assert baofast.utils.identicalHDUs(name, h0, h)
+                    fTheta += h['fTheta'].data['count']
+                    gThetaZ += csr_matrix(h['gThetaZ'].data, shape=gThetaZ.shape)
+                    u = h['uThetaZZ'].data
+                    uThetaZZ += csr_matrix((u['count'], (u['binTheta'],u['binZdZ'])),
+                                           shape=uThetaZZ.shape)
 
-        fTheta = jobHDUs[0]['fTheta']
-        fTheta.data['count'] = np.zeros(fTheta.data['count'].shape,
-                                   dtype=fTheta.data['count'].dtype)
-        for hdu in jobHDUs:
-            fTheta.data['count'] += hdu['fTheta'].data['count']
-        fTheta.data['count'] /= 2
-        self.hdus.append(fTheta)
-
-        self.writeToFile()
+            self.hdus.append(h0["centerTheta"])
+            self.hdus.append(h0["centerZ"])
+            self.hdus.append(h0["pdfZ"])
+            fTheta /= 2
+            uThetaZZ /= 2
+            self.hdus.extend(self.fguHDU(fTheta, gThetaZ, uThetaZZ))
+            self.writeToFile()
