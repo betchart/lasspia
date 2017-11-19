@@ -40,9 +40,10 @@ class Chunker(object):
         self.typeDR = type(self.typeR()*self.typeD())
 
         self.zBins = self.angzd.shape[1]
+        self.binningTheta = comb.config.binningTheta()
         self.invThetaBinWidth = (
             lambda d: d['bins'] / (d['range'][1] - d['range'][0])
-        )(comb.config.binningTheta())
+        )(self.binningTheta)
 
     @staticmethod
     def largeType(a):
@@ -88,6 +89,32 @@ class combinatorial(baofast.routine):
                 csr_matrix((tBins, zBins), dtype=type(typeR()*typeD())),
                 csr_matrix((tBins, zBins*zBins), dtype=typeD))
 
+    @staticmethod
+    def ft(ch):
+        ccR = np.multiply.outer(ch.dbl * ch.countR1, ch.countR2)
+        return np.histogram( ch.thetas, weights=ccR, **ch.binningTheta)[0]
+
+    @staticmethod
+    def gtz(iTh, countR, zD, shp):
+        iAng, iZ = zD.nonzero()
+        iZs = np.multiply.outer(np.ones(len(countR), dtype=iZ.dtype), iZ)
+        weight = np.multiply.outer(countR, zD.data)
+        return csr_matrix((weight.flat, (iTh[:,iAng].flat, iZs.flat)),
+                          shape=shp)
+
+    @staticmethod
+    def utzz(ch, shp):
+        iAng1, iZ1 = ch.zD1.nonzero()
+        iAng2, iZ2 = ch.zD2.nonzero()
+        iTh = ch.iThetas[iAng1][:,iAng2]
+        iZ1s = np.multiply.outer(iZ1, np.ones(len(iZ2), dtype=iZ2.dtype))
+        iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=iZ1.dtype), iZ2)
+        weight = np.multiply.outer(ch.dbl * ch.zD1.data, ch.zD2.data)
+
+        iZZs = ch.zBins*iZ1s + iZ2s
+        return csr_matrix((weight.flat, (iTh.flat, iZZs.flat)),
+                          shape=shp)
+
     def fguOfTheta(self):
         ch = Chunker(self)
 
@@ -98,35 +125,11 @@ class combinatorial(baofast.routine):
         for chunk in self.chunks(len(ch.ang)):
             print '.'
             ch.set(*chunk)
-
-            def ft():
-                ccR = np.multiply.outer(ch.dbl * ch.countR1, ch.countR2)
-                return np.histogram( ch.thetas, weights=ccR, **self.config.binningTheta())[0]
-
-            def gtz(iTh, countR, zD):
-                iAng, iZ = zD.nonzero()
-                iZs = np.multiply.outer(np.ones(len(countR), dtype=iZ.dtype), iZ)
-                weight = np.multiply.outer(countR, zD.data)
-                return csr_matrix((weight.flat, (iTh[:,iAng].flat, iZs.flat)),
-                                  shape=gThetaZ.shape)
-
-            def utzz():
-                iAng1, iZ1 = ch.zD1.nonzero()
-                iAng2, iZ2 = ch.zD2.nonzero()
-                iTh = ch.iThetas[iAng1][:,iAng2]
-                iZ1s = np.multiply.outer(iZ1, np.ones(len(iZ2), dtype=iZ2.dtype))
-                iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=iZ1.dtype), iZ2)
-                weight = np.multiply.outer(ch.dbl * ch.zD1.data, ch.zD2.data)
-
-                iZZs = ch.zBins*iZ1s + iZ2s
-                return csr_matrix((weight.flat, (iTh.flat, iZZs.flat)),
-                                  shape=uThetaZZ.shape)
-
-            fTheta += ft()
-            uThetaZZ += utzz()
-            gThetaZ += gtz(ch.iThetas, ch.countR1, ch.zD2)
+            fTheta += self.ft(ch)
+            uThetaZZ += self.utzz(ch, uThetaZZ.shape)
+            gThetaZ += self.gtz(ch.iThetas, ch.countR1, ch.zD2, gThetaZ.shape)
             if not ch.ii:
-                gThetaZ += gtz(ch.iThetas.T, ch.countR2, ch.zD1)
+                gThetaZ += self.gtz(ch.iThetas.T, ch.countR2, ch.zD1, gThetaZ.shape)
             pass
 
         if self.iJob is None:
