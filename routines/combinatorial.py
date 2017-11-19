@@ -111,8 +111,11 @@ class combinatorial(baofast.routine):
         iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=iZ1.dtype), iZ2)
         weight = np.multiply.outer(ch.dbl * ch.zD1.data, ch.zD2.data)
 
-        iZZs = ch.zBins*iZ1s + iZ2s
-        return csr_matrix((weight.flat, (iTh.flat, iZZs.flat)),
+        iZ = np.minimum(iZ1s, iZ2s)
+        diZ = np.abs(iZ1s - iZ2s)
+
+        iZdZs = ch.zBins*iZ + diZ
+        return csr_matrix((weight.flat, (iTh.flat, iZdZs.flat)),
                           shape=shp)
 
     def fguLoop(self):
@@ -145,16 +148,16 @@ class combinatorial(baofast.routine):
 
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
 
-        iTheta, iZZ = uThetaZZ.nonzero()
+        iTheta, iZdZ = uThetaZZ.nonzero()
         zBins = np.int16(np.sqrt(uThetaZZ.shape[1]))
 
         uThetaZZRec = np.array(zip(iTheta,
-                                   iZZ / zBins,
-                                   iZZ % zBins,
+                                   iZdZ / zBins,
+                                   iZdZ % zBins,
                                    uThetaZZ.data.astype(np.float32)),
                                dtype = [("binTheta", np.int16),
-                                        ("binZ1", np.int16),
-                                        ("binZ2", np.int16),
+                                        ("binZ", np.int16),
+                                        ("dBinZ", np.int16),
                                         ("count", np.float32)
                                ])
 
