@@ -1,4 +1,4 @@
-import baofast
+import baofast as bf
 import math
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -41,9 +41,6 @@ class Chunker(object):
 
         self.zBins = self.angzd.shape[1]
         self.binningTheta = comb.config.binningTheta()
-        self.invThetaBinWidth = (
-            lambda d: d['bins'] / (d['range'][1] - d['range'][0])
-        )(self.binningTheta)
 
     @staticmethod
     def largeType(a):
@@ -57,12 +54,12 @@ class Chunker(object):
         self.zD2 = self.angzd[slice2].astype(self.typeDR)
 
         self.thetas = self.thetaChunk(slice1, slice2)
-        self.iThetas = (self.invThetaBinWidth * self.thetas).astype(np.int16)
+        self.iThetas = bf.utils.toBins(self.thetas, self.binningTheta, dtype=np.int16)
         self.ii = slice1 == slice2
         self.dbl = 1 if self.ii else 2
 
 
-class combinatorial(baofast.routine):
+class combinatorial(bf.routine):
 
     def __call__(self):
         self.hdus.append( self.binCentersTheta() )
@@ -72,7 +69,7 @@ class combinatorial(baofast.routine):
         self.writeToFile()
 
     def binCentersTheta(self):
-        centers = np.array( baofast.utils.centers(self.config.edgesTheta()),
+        centers = np.array( bf.utils.centers(self.config.edgesTheta()),
                             dtype = [("binCenter", np.float64)])
         return fits.BinTableHDU(centers, name="centerTheta")
 
@@ -177,7 +174,7 @@ class combinatorial(baofast.routine):
             for jF in jobFiles:
                 with fits.open(jF) as h:
                     for name in ['centerTheta','centerZ','pdfZ']:
-                        assert baofast.utils.identicalHDUs(name, h0, h)
+                        assert bf.utils.identicalHDUs(name, h0, h)
                     fTheta += h['fTheta'].data['count']
                     gThetaZ += csr_matrix(h['gThetaZ'].data, shape=gThetaZ.shape)
                     u = h['uThetaZZ'].data

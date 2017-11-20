@@ -1,10 +1,19 @@
 from multiprocessing import JoinableQueue,Process
 import sys,traceback
 from astropy.io import fits
+import numpy as np
 
 def centers(leftEdges):
     return leftEdges[:-1] + 0.5 * (leftEdges[1:] - leftEdges[:-1])
 
+
+def invBinWidth(binning):
+    return (binning['bins'] /
+            (binning['range'][1] -
+             binning['range'][0]))
+
+def toBins(ary, binning, dtype=np.int32):
+    return ((ary-binning['range'][0]) * invBinWidth(binning)).astype(dtype)
 
 def callInParallel(nCores, itemsToCall):
     q = JoinableQueue()
