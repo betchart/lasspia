@@ -1,8 +1,9 @@
-import baofast
+import baofast as bf
 import numpy as np
 from astropy.io import fits
+from scipy.sparse import csr_matrix
 
-class preprocessing(baofast.routine):
+class preprocessing(bf.routine):
     """Preprocessing for fast 2-point correlations.
 
     Open input catalogs, create histograms, save to file.
@@ -18,7 +19,7 @@ class preprocessing(baofast.routine):
         self.writeToFile()
 
     def binCenters(self, edges, name):
-        centers = np.array( baofast.utils.centers(edges),
+        centers = np.array( bf.utils.centers(edges),
                             dtype = [("binCenter", np.float64)])
         return fits.BinTableHDU(centers, name=name)
 
@@ -57,10 +58,6 @@ class preprocessing(baofast.routine):
         binning2D = self.config.binningDD([self.config.binningRA(),
                                            self.config.binningDec()])
 
-        binning3D = self.config.binningDD([self.config.binningRA(),
-                                           self.config.binningDec(),
-                                           self.config.binningZ()])
-
         angR, xedges, yedges = np.histogram2d(ctlgR.ra, ctlgR.dec, weights=ctlgR.weightNoZ,
                                               **binning2D)
 
@@ -69,27 +66,31 @@ class preprocessing(baofast.routine):
 
         xx, yy = np.meshgrid(range(len(xedges)-1), range(len(yedges)-1), indexing='ij')
 
-        ang = np.array(zip(xx.flat, yy.flat, angR.flat, angD.flat),
-                       dtype = [("binRA", self.iType(len(xedges))),
-                                ("binDec", self.iType(len(yedges))),
-                                ("countR", self.iType(max(angR.flat))),
-                                ("countD", np.float32)])
 
-        mask = np.logical_or(ang["countR"]>0, ang["countD"]>0)
-        hdu = fits.BinTableHDU(ang[mask], name="ang")
+        mask = np.logical_or(angR>0, angD>0)
+        hdu = fits.BinTableHDU.from_columns([
+            fits.Column(name="binRA", array=xx[mask], format='I'),
+            fits.Column(name="binDec",array=yy[mask], format='I'),
+            fits.Column(name="countR",array=angR[mask], format='I'),
+            fits.Column(name="countD",array=angD[mask], format='E')],
+                                            name="ang")
         hdu.header.add_comment("Unraveled angular (ra,dec) 2D histogram.")
         hdu.header.add_comment("Histogram for random catalog filled with z independent weights.")
         self.addProvenance(hdu,
                            self.config.inputFilesRandom() +
                            self.config.inputFilesObserved())
 
-        triplets = np.vstack([ctlgD.ra, ctlgD.dec, ctlgD.z]).T
-        frq, edges = np.histogramdd(triplets,
-                                    weights=ctlgD.weight,
-                                    **binning3D)
+        binsZ = self.config.binningZ()['bins']
+        binsRA = self.config.binningRA()['bins']
+        binsDec = self.config.binningDec()['bins']
 
-        nx,ny,nz = frq.shape
-        angzD = frq.reshape(nx*ny,nz)[mask]
+        iZ = bf.utils.toBins(ctlgD.z, self.config.binningZ())
+        iRA = bf.utils.toBins(ctlgD.ra, self.config.binningRA())
+        iDec= bf.utils.toBins(ctlgD.dec, self.config.binningDec())
+        iAng = binsDec*iRA  + iDec
+
+        frq = csr_matrix((ctlgD.weight, (iAng, iZ)), shape=(binsRA*binsDec, binsZ))
+        angzD = frq[mask.ravel()].toarray()
 
         # Floating point FITS images (which have BITPIX = -32 or -64)
         # usually contain too much 'noise' in the least significant
@@ -99,7 +100,8 @@ class preprocessing(baofast.routine):
         # integer pixel values (and thus throwing away much of the
         # noise) before being compressed with the specified algorithm
         # (either GZIP, RICE, or HCOMPRESS)
-        hdu2 = fits.CompImageHDU(angzD.astype(np.float32), name="angzD")
+
+        hdu2 = fits.CompImageHDU(angzD, name="angzD")
         hdu2.header.add_comment("3D histogram (ra, dec, z) of observed galaxies.")
         hdu2.header.add_comment("Unraveled in (ra,dec) to align with 'ANG', rows are z dimension.")
         self.addProvenance(hdu2, self.config.inputFilesObserved())
