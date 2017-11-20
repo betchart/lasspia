@@ -10,15 +10,15 @@ class integration(baofast.routine):
         Iz = self.zIntegral()
         rOfZ = Iz * (self.config.lightspeed()/self.config.H0())
         tOfZ = rOfZ * (1 + self.config.omegasMKL()[1]/6 * Iz**2)
-        zCenters = self.getPre('centerZ').data['binCenter']
-        thetas = self.getPre('centertheta').data['binCenter']
+        zCenters = self.getInput('centerZ').data['binCenter']
+        thetas = self.getInput('centertheta').data['binCenter']
         sinT2 = np.sin(thetas/2)
         cosT2 = np.cos(thetas/2)
 
-        ft = self.getPre('fTheta').data['count']
-        gtz = self.getPre('gThetaZ').data
-        utzz = self.getPre('uThetaZZ').data
-        pdfz = self.getPre('pdfZ').data['probability']
+        ft = self.getInput('fTheta').data['count']
+        gtz = self.getInput('gThetaZ').data
+        utzz = self.getInput('uThetaZZ').data
+        pdfz = self.getInput('pdfZ').data['probability']
 
         sigmas = sinT2[:,None,None] * (tOfZ[None,:,None] + tOfZ[None,None,:])
         pis = cosT2[:,None,None] * (rOfZ[None,:,None] - rOfZ[None,None,:])
@@ -54,13 +54,10 @@ class integration(baofast.routine):
         DR = calcDR()
         DD = calcDD()
         for x,y,z,a in zip(centers,RR,DR,DD): print x,y,z,a
-        print np.sum(RR)
-        print np.sum(DR)
-        print np.sum(DD)
-
+        return
 
     def zIntegral(self):
-        zCenters = self.getPre('centerz').data['binCenter']
+        zCenters = self.getInput('centerz').data['binCenter']
         zz = zip(np.hstack([[0.],zCenters]), zCenters)
         dIz = [quad(self.integrand, z1, z2, args=self.config.omegasMKL())[0]
                for z1,z2 in zz]
@@ -76,6 +73,6 @@ class integration(baofast.routine):
     def inputFileName(self):
         return self.config.stageFileName('combinatorial')
 
-    def getPre(self, name):
+    def getInput(self, name):
         hdulist = fits.open(self.inputFileName)
         return hdulist[name]
