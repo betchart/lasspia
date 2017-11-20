@@ -52,4 +52,4 @@ class cmassS(baofast.configuration):
         '''Speed of light in km/s'''
         return 299792
 
-    def binningS(self): return {"bins":300, "range":(0,6000)}
+    def binningS(self): return {"bins":1200, "range":(0,6000)}
