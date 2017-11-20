@@ -29,14 +29,27 @@ class cmassS(baofast.configuration):
     
     def chunkSize(self): return 2000
 
+
+    '''Configuration affecting only the "integration" routine.'''
+
     def omegasMKL(self):
         '''Cosmology parameters (\Omega_M, \Omega_K, \Omega_\Lambda).'''
         return (0.274, 0, 0.726)
 
+    #def H0(self):
+    #    '''Hubble constant in km/s / Mpc''' # (from paper section 4.1)
+    #    return 70.
+    #
+    # def h(self):
+    #     return (self.H0() /
+    #             100) # km/s / Mpc
+
     def H0(self):
-        '''Hubble constant in km/s / Mpc'''
-        return 70
+        '''Hubble constant in (h km/s / Mpc)''' #(from paper section 1: Introduction 
+        return 100.
 
     def lightspeed(self):
         '''Speed of light in km/s'''
         return 299792
+
+    def binningS(self): return {"bins":300, "range":(0,6000)}
