@@ -90,20 +90,17 @@ class preprocessing(bf.routine):
         iAng = binsDec*iRA  + iDec
 
         frq = csr_matrix((ctlgD.weight, (iAng, iZ)), shape=(binsRA*binsDec, binsZ))
-        angzD = frq[mask.ravel()].toarray()
 
-        # Floating point FITS images (which have BITPIX = -32 or -64)
-        # usually contain too much 'noise' in the least significant
-        # bits of the mantissa of the pixel values to be effectively
-        # compressed with any lossless algorithm. Consequently,
-        # floating point images are first quantized into scaled
-        # integer pixel values (and thus throwing away much of the
-        # noise) before being compressed with the specified algorithm
-        # (either GZIP, RICE, or HCOMPRESS)
+        angzD = frq[mask.ravel()]
+        iA, iZ = angzD.nonzero()
+        hdu2 = fits.BinTableHDU.from_columns([
+            fits.Column(name="iA", array=iA, format='J'),
+            fits.Column(name="iZ", array=iZ, format='I'),
+            fits.Column(name='count', array=angzD.data, format='E')],
+                                             name="angzD")
 
-        hdu2 = fits.CompImageHDU(angzD, name="angzD")
-        hdu2.header.add_comment("3D histogram (ra, dec, z) of observed galaxies.")
-        hdu2.header.add_comment("Unraveled in (ra,dec) to align with 'ANG', rows are z dimension.")
+        hdu2.header.add_comment("Sparse 3D histogram (ra, dec, z) of observed galaxies.")
+        hdu2.header.add_comment("Unraveled in (ra,dec) and masked to align with 'ANG' rows.")
         self.addProvenance(hdu2, self.config.inputFilesObserved())
 
         return [hdu, hdu2]

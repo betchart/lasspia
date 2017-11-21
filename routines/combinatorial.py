@@ -27,8 +27,12 @@ class ThetaChunker(object):
 
 class Chunker(object):
     def __init__(self, comb):
+        self.zBins = len(comb.getPre('centerz').data['binCenter'])
+        self.binningTheta = comb.config.binningTheta()
+
         self.ang = comb.getPre("ANG").data
-        self.angzd = csr_matrix(comb.getPre("ANGZD").data)
+        angzd = comb.getPre('ANGZD').data
+        self.angzd = csr_matrix((angzd["count"], (angzd['iA'],angzd['iZ'])), shape=(len(self.ang), self.zBins))
 
         self.thetaChunk = ThetaChunker(
             DEGTORAD * comb.getPre("centerDec").data["binCenter"],
@@ -38,9 +42,6 @@ class Chunker(object):
         self.typeR = self.largeType(self.ang['countR'])
         self.typeD = self.largeType(self.angzd)
         self.typeDR = type(self.typeR()*self.typeD())
-
-        self.zBins = self.angzd.shape[1]
-        self.binningTheta = comb.config.binningTheta()
 
     @staticmethod
     def largeType(a):
