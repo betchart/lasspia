@@ -1,7 +1,7 @@
 import baofast
 import math
 
-class cmassS(baofast.configuration):
+class cmassS_coarse(baofast.configuration):
 
     def dataDir(self):
         """Directory of catalog files."""
