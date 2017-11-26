@@ -32,7 +32,7 @@ class Chunker(object):
 
         self.ang = comb.getPre("ANG").data
         angzd = comb.getPre('ANGZD').data
-        self.angzd = csr_matrix((angzd["count"], (angzd['iA'],angzd['iZ'])), shape=(len(self.ang), self.zBins))
+        self.angzd = csr_matrix((angzd["count"], (angzd['iAlign'],angzd['iZ'])), shape=(len(self.ang), self.zBins))
 
         self.thetaChunk = ThetaChunker(
             DEGTORAD * comb.getPre("centerDec").data["binCenter"],

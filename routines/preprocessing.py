@@ -94,7 +94,7 @@ class preprocessing(bf.routine):
         angzD = frq[mask.ravel()]
         iA, iZ = angzD.nonzero()
         hdu2 = fits.BinTableHDU.from_columns([
-            fits.Column(name="iA", array=iA, format='J'),
+            fits.Column(name="iAlign", array=iA, format='J'),
             fits.Column(name="iZ", array=iZ, format='I'),
             fits.Column(name='count', array=angzD.data, format='E')],
                                              name="angzD")
