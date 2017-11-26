@@ -9,8 +9,8 @@ def centers(leftEdges):
 
 def invBinWidth(binning):
     return (binning['bins'] /
-            (binning['range'][1] -
-             binning['range'][0]))
+            float(binning['range'][1] -
+                  binning['range'][0]))
 
 def toBins(ary, binning, dtype=np.int32):
     return ((ary-binning['range'][0]) * invBinWidth(binning)).astype(dtype)
