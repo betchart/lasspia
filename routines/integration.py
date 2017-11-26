@@ -65,9 +65,9 @@ class integration(baofast.routine):
 
     @staticmethod
     def integrand(z, omegaM, omegaK, omegaLambda):
-        return math.sqrt(omegaM * (1+z)**3 +
-                         omegaK * (1+z)**2 +
-                         omegaLambda)
+        return 1./math.sqrt(omegaM * (1+z)**3 +
+                            omegaK * (1+z)**2 +
+                            omegaLambda)
 
     @property
     def inputFileName(self):
