@@ -55,14 +55,15 @@ class integration(bf.routine):
 
     def calcDD(self,s):
         utzz = self.getInput('uThetaZZ').data
-        counts = utzz['count']
-        iThetas = utzz['binTheta']
-        iZdZ = utzz['binZdZ']
+        slc = slice(-1 if (utzz['binZdZ'][-1]+1)==s.shape[1]**2 else None)
+        counts = utzz['count'][slc]
+        iThetas = utzz['binTheta'][slc]
+        iZdZ = utzz['binZdZ'][slc]
         iZ = iZdZ / s.shape[1]
         diZ = iZdZ % s.shape[1]
         iZ2 = iZ + diZ
         dd = np.histogram(s[iThetas,iZ,iZ2], weights=counts, **self.config.binningS())[0]
-        dd /= np.sum(dd)
+        dd /= np.sum(utzz['count'])
         return dd
 
     def centersS(self):
