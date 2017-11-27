@@ -9,11 +9,17 @@ class integration(bf.routine):
     def __call__(self):
         self.pdfz = self.getInput('pdfZ').data['probability']
         s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids()))
-        centers = bf.utils.centers(self.config.edgesFromBinning(self.config.binningS()))
-        RR = self.calcRR(s)
-        DR = self.calcDR(s)
-        DD = self.calcDD(s)
-        for x,y,z,a in zip(centers,RR,DR,DD): print x,y,z,a
+
+        hdu = fits.BinTableHDU.from_columns([
+            fits.Column(name='s', array=self.centersS(), format='E'),
+            fits.Column(name='RR', array=self.calcRR(s), format='E'),
+            fits.Column(name='DR', array=self.calcDR(s), format='E'),
+            fits.Column(name='DD', array=self.calcDD(s), format='E')],
+                                            name="TPCF")
+        hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
+                               " by distance s.")
+        self.hdus.append(hdu)
+        self.writeToFile()
         return
 
     def sigmaPiGrids(self):
@@ -58,6 +64,9 @@ class integration(bf.routine):
         dd = np.histogram(s[iThetas,iZ,iZ2], weights=counts, **self.config.binningS())[0]
         dd /= np.sum(dd)
         return dd
+
+    def centersS(self):
+        return bf.utils.centers(self.config.edgesFromBinning(self.config.binningS()))
 
     def zIntegral(self):
         zCenters = self.getInput('centerz').data['binCenter']
