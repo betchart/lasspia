@@ -29,6 +29,8 @@ class Chunker(object):
     def __init__(self, comb):
         self.zBins = len(comb.getPre('centerz').data['binCenter'])
         self.binningTheta = comb.config.binningTheta()
+        self.diZmax = comb.config.maxDeltaZ()
+        if self.diZmax: self.diZmax *= bf.utils.invBinWidth(comb.config.binningZ())
 
         self.ang = comb.getPre("ANG").data
         angzd = comb.getPre('ANGZD').data
@@ -114,9 +116,13 @@ class combinatorial(bf.routine):
         iZ = np.minimum(iZ1s, iZ2s)
         diZ = np.abs(iZ1s - iZ2s)
 
+        mask = slice(None) if not ch.diZmax else (diZ > ch.diZmax)
+        unbinned = 0 if not ch.diZmax else weight[mask==False].sum()
+
         iZdZs = ch.zBins*iZ + diZ
-        return csr_matrix((weight.flat, (iTh.flat, iZdZs.flat)),
-                          shape=shp)
+        return ( csr_matrix((weight[mask].flat, (iTh[mask].flat, iZdZs[mask].flat)),
+                            shape=shp)
+                 + csr_matrix(([unbinned], ([shp[0]-1], [shp[1]-1])), shape=shp))
 
     def fguLoop(self):
         ch = Chunker(self)
