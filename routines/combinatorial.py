@@ -77,8 +77,15 @@ class combinatorial(bf.routine):
         return fits.BinTableHDU(centers, name="centerTheta")
 
     def chunks(self, size):
-        # Full array of indices possible in place of slices: regioning.
-        # However, fancy indices makes a copy, while slice makes a view
+        if any([self.config.maxDeltaRA(),
+                self.config.maxDeltaDec()]):
+            return self.__indexChunks__(size)
+        return self.__sliceChunks__(size)
+
+    def __indexChunks__(self, size):
+        pass
+
+    def __sliceChunks__(self, size):
         splits = range(0, size, self.config.chunkSize())
         slices = [slice(i,j) for i,j in zip(splits,splits[1:]+[None])]
         return [(slices[i],jSlice)
