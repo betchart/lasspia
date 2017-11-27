@@ -116,7 +116,7 @@ class combinatorial(bf.routine):
         iZ = np.minimum(iZ1s, iZ2s)
         diZ = np.abs(iZ1s - iZ2s)
 
-        mask = slice(None) if not ch.diZmax else (diZ > ch.diZmax)
+        mask = slice(None) if not ch.diZmax else (diZ < ch.diZmax)
         unbinned = 0 if not ch.diZmax else weight[mask==False].sum()
 
         iZdZs = ch.zBins*iZ + diZ
