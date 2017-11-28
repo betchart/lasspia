@@ -27,6 +27,13 @@ class cmassN(baofast.configuration):
     def chunkSize(self) : return 2000
 
 
+    '''Parameters for avoiding unnecessary combinatorial calculations at large s.
+    Galaxies farther apart than these parameters may not be included in result.'''
+
+    def maxDeltaRA(self): return 25
+    def maxDeltaDec(self): return 25
+    def maxDeltaZ(self): return 0.1
+
     '''Configuration affecting only the "integration" routine.'''
 
     def omegasMKL(self):
