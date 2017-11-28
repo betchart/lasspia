@@ -1,4 +1,5 @@
 import numpy as np
+import utils
 
 class configuration(object):
 
@@ -18,18 +19,27 @@ class configuration(object):
     def binningDec(self): pass
     def binningTheta(self): pass
 
+    def chunkSize(self): pass
+
     '''Parameters for avoiding unnecessary combinatorial calculations at large s.
     Galaxies farther apart than these parameters may not be included in result.'''
     def maxDeltaRA(self): return None
     def maxDeltaDec(self): return None
     def maxDeltaZ(self): return None
 
+    def binRegionsRA(self):
+        return utils.binRegions(self.maxDeltaRA(), self.binningRA())
+
+    def binRegionsDec(self):
+        return utils.binRegions(self.maxDeltaDec(), self.binningDec())
+
     def edgesZ(self): return self.edgesFromBinning(self.binningZ())
     def edgesRA(self): return self.edgesFromBinning(self.binningRA())
     def edgesDec(self): return self.edgesFromBinning(self.binningDec())
     def edgesTheta(self): return self.edgesFromBinning(self.binningTheta())
 
-
+    def integrationChunkTheta(self): pass
+    def binningS(self): pass
 
     def __init__(self):
         pass

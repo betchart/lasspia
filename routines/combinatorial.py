@@ -58,7 +58,7 @@ class Chunker(object):
 
         self.thetas = self.thetaChunk(slice1, slice2)
         self.iThetas = bf.utils.toBins(self.thetas, self.binningTheta, dtype=np.int16)
-        self.ii = slice1 == slice2
+        self.ii = np.all(slice1 == slice2)
         self.dbl = 1 if self.ii else 2
 
 
@@ -82,15 +82,43 @@ class combinatorial(bf.routine):
             return self.__indexChunks__(size)
         return self.__sliceChunks__(size)
 
-    def __indexChunks__(self, size):
-        pass
-
     def __sliceChunks__(self, size):
-        splits = range(0, size, self.config.chunkSize())
-        slices = [slice(i,j) for i,j in zip(splits,splits[1:]+[None])]
+        slices = bf.utils.slices(size, self.config.chunkSize())
         return [(slices[i],jSlice)
                 for i in range(len(slices))
                 for jSlice in slices[i:]][self.iJob::self.nJobs]
+
+    def __indexChunks__(self, size):
+        ang = self.getPre('ang').data
+        def regionIndices(ra,dc):
+            mask = reduce(np.logical_and, [ra.start <= ang['binRA'],
+                                           ang['binRA'] < ra.stop,
+                                           dc.start <= ang['binDec'],
+                                           ang['binDec'] < dc.stop],
+                          0 <= ang['binDec'])
+            return mask.nonzero()[0]
+
+        regions = [[(i,j) for i in self.config.binRegionsRA()]
+                   for j in self.config.binRegionsDec()]
+
+        rpairs = sum([
+            [(r,r) for row in regions for r in row],                                             # self
+            [(r1,r2) for row in regions for r1,r2 in zip(row,row[1:])],                          # right
+            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2)],     # below
+            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2[1:])], # below right
+            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1[1:],row2)], # below left
+            ], [])
+        cz = self.config.chunkSize()
+        for r1,r2 in rpairs:
+            i1 = regionIndices(*r1)
+            i2 = regionIndices(*r2)
+            schnks = ( self.__sliceChunks__(len(i1)) if r1==r2 else
+                       [(s1,s2)
+                        for s1 in bf.utils.slices(len(i1),cz)
+                        for s2 in bf.utils.slices(len(i2),cz)][self.iJob::self.nJobs])
+            for s1,s2 in schnks:
+                yield i1[s1], i2[s2]
+        return
 
     def fguInit(self, typeR, typeD, zBins):
         tBins = self.config.binningTheta()['bins']

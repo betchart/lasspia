@@ -8,13 +8,27 @@ class integration(bf.routine):
 
     def __call__(self):
         self.pdfz = self.getInput('pdfZ').data['probability']
-        s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids()))
+
+        binsS = self.config.binningS()['bins']
+        RR = np.zeros(binsS)
+        DR = np.zeros(binsS)
+        DD = np.zeros(binsS)
+
+        for slcT in bf.utils.slices(len(self.getInput('centertheta').data),
+                                    self.config.integrationChunkTheta()):
+            s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
+            RR += self.calcRR(s, slcT)
+            DR += self.calcDR(s, slcT)
+            DD += self.calcDD(s, slcT)
+        RR /= sum(RR)
+        DR /= sum(DR)
+        DD /= np.sum(self.getInput('uThetaZZ').data['count'])
 
         hdu = fits.BinTableHDU.from_columns([
             fits.Column(name='s', array=self.centersS(), format='E'),
-            fits.Column(name='RR', array=self.calcRR(s), format='E'),
-            fits.Column(name='DR', array=self.calcDR(s), format='E'),
-            fits.Column(name='DD', array=self.calcDD(s), format='E')],
+            fits.Column(name='RR', array=RR, format='E'),
+            fits.Column(name='DR', array=DR, format='E'),
+            fits.Column(name='DD', array=DD, format='E')],
                                             name="TPCF")
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
@@ -22,14 +36,14 @@ class integration(bf.routine):
         self.writeToFile()
         return
 
-    def sigmaPiGrids(self):
+    def sigmaPiGrids(self, slcT):
         '''A cubic grid of sigma (pi) values
         for pairs of galaxies with coordinates (iTheta, iZ1, iZ2).'''
         Iz = self.zIntegral()
         rOfZ = Iz * (self.config.lightspeed()/self.config.H0())
         tOfZ = rOfZ * (1 + self.config.omegasMKL()[1]/6 * Iz**2)
 
-        thetas = self.getInput('centertheta').data['binCenter']
+        thetas = self.getInput('centertheta').data['binCenter'][slcT]
         sinT2 = np.sin(thetas/2)
         cosT2 = np.cos(thetas/2)
 
@@ -37,33 +51,34 @@ class integration(bf.routine):
         pis = cosT2[:,None,None] * (rOfZ[None,:,None] - rOfZ[None,None,:])
         return sigmas, pis
 
-    def calcRR(self,s):
-        ft = self.getInput('fTheta').data['count']
+    def calcRR(self,s, slcT):
+        ft = self.getInput('fTheta').data['count'][slcT]
         counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:]
         rr = np.histogram(s, weights=counts, **self.config.binningS())[0]
-        rr /= np.sum(rr)
         del counts
         return rr
 
-    def calcDR(self,s):
+    def calcDR(self,s, slcT):
         gtz = self.getInput('gThetaZ').data
-        counts = gtz[:,:,None] * self.pdfz[None,None,:]
+        counts = gtz[slcT,:,None] * self.pdfz[None,None,:]
         dr = np.histogram(s, weights=counts, **self.config.binningS())[0]
-        dr /= np.sum(dr)
         del counts
         return dr
 
-    def calcDD(self,s):
+    def calcDD(self,s, slcT):
         utzz = self.getInput('uThetaZZ').data
         slc = slice(-1 if (utzz['binZdZ'][-1]+1)==s.shape[1]**2 else None)
-        counts = utzz['count'][slc]
+
         iThetas = utzz['binTheta'][slc]
-        iZdZ = utzz['binZdZ'][slc]
+        mask = np.logical_and(slcT.start <= iThetas, iThetas < slcT.stop)
+
+        counts = utzz['count'][slc][mask]
+        iTh = iThetas[mask] - slcT.start
+        iZdZ = utzz['binZdZ'][slc][mask]
         iZ = iZdZ / s.shape[1]
         diZ = iZdZ % s.shape[1]
         iZ2 = iZ + diZ
-        dd = np.histogram(s[iThetas,iZ,iZ2], weights=counts, **self.config.binningS())[0]
-        dd /= np.sum(utzz['count'])
+        dd = np.histogram(s[iTh,iZ,iZ2], weights=counts, **self.config.binningS())[0]
         return dd
 
     def centersS(self):
