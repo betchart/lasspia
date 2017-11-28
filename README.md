@@ -40,7 +40,42 @@ Test your installation by running the 'quickscan.py' routine.
 
 ## A Complete Example
 
-Pending
+We can quickly find the two-point correlation function xsi for
+galaxies in the (descriptor) survey of the souther sky using the
+included configuration `configs/cmassS_coars.py`.  This configuration
+differs from `configs/cmassS.py` by using fewer bins and not employing
+any strategies to reduce the number of evaluated galaxy pairs.  The
+processing is divided into stages, each with their own corresponding routine;
+* 'preprocessing' histograms the data from the galaxy catalogs
+* 'combinatorial' makes distributions of galaxy pairs
+* 'integration' incorporates cosmological data to convert angles and redshift to distances
+
+### Preprocessing
+```
+./baofast.py configs/cmassS_coarse.py routines/preprocessing.py
+```
+```
+./baofast.py configs/cmassS_coarse.py routines/showPre.py
+```
+
+### Combinatorial
+```
+./baofast.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8 --nCores 4
+```
+```
+./baofast.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8
+```
+
+### Integration
+```
+./baofast.py configs/cmassS_coarse.py routines/integration.py
+```
+
+### Visualization
+Graph the results
+```
+pending
+```
 
 ## Contributing
 
