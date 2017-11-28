@@ -41,32 +41,42 @@ Test your installation by running the 'quickscan.py' routine.
 ## A Complete Example
 
 We can quickly find the two-point correlation function xsi for
-galaxies in the (descriptor) survey of the souther sky using the
-included configuration `configs/cmassS_coars.py`.  This configuration
-differs from `configs/cmassS.py` by using fewer bins and not employing
-any strategies to reduce the number of evaluated galaxy pairs.  The
-processing is divided into stages, each with their own corresponding routine;
-* 'preprocessing' histograms the data from the galaxy catalogs
-* 'combinatorial' makes distributions of galaxy pairs
-* 'integration' incorporates cosmological data to convert angles and redshift to distances
+galaxies in the DR9 survey of the souther sky using the included
+configuration `configs/cmassS_coarse.py`.  This configuration differs
+from `configs/cmassS.py` by using fewer bins and not employing any
+strategies to reduce the number of evaluated galaxy pairs.  The
+processing is divided into stages, each with their own corresponding
+routine; * 'preprocessing' histograms the data from the galaxy
+catalogs * 'combinatorial' makes distributions of galaxy pairs *
+'integration' incorporates cosmological data to convert angles and
+redshift to distances
 
 ### Preprocessing
+Run the preprocessing routine, which takes seconds.
 ```
 ./baofast.py configs/cmassS_coarse.py routines/preprocessing.py
 ```
+View the headers of the preprocessing output file.
 ```
 ./baofast.py configs/cmassS_coarse.py routines/showPre.py
 ```
 
 ### Combinatorial
+Run the combinatorial routine, which takes about half an hour.
+```
+./baofast.py configs/cmassS_coarse.py routines/combinatorial.py
+```
+Alternatively, run the combinatorial routine with parallel jobs.
 ```
 ./baofast.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8 --nCores 4
 ```
+Combine the output of the jobs.
 ```
 ./baofast.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8
 ```
 
 ### Integration
+Run the integration routine, which takes seconds.
 ```
 ./baofast.py configs/cmassS_coarse.py routines/integration.py
 ```
