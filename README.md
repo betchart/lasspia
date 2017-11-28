@@ -32,10 +32,10 @@ cd baofast/
 ./downloadDR9.py
 ```
 
-Test your installation by running the 'quickcheck.py' routine.
+Test your installation by running the 'quickscan.py' routine.
 
 ```
-./baofast.py configs/cmassS.py routines/quickcheck.py
+./baofast.py configs/cmassS.py routines/quickscan.py
 ```
 
 ## A Complete Example
