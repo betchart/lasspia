@@ -28,6 +28,7 @@ git clone https://github.com/betchart/baofast.git
 Download the SDSS galaxy survey catalogs:
 
 ```
+cd baofast/
 ./downloadDR9.py
 ```
 
