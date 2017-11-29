@@ -22,20 +22,20 @@ The included configurations rely on DR9 data from the Sloan Digital Sky Survey:
 Clone the repository to your local system:
 
 ```
-git clone https://github.com/betchart/baofast.git
+git clone https://github.com/betchart/lasspia.git
 ```
 
 Download the SDSS galaxy survey catalogs:
 
 ```
-cd baofast/
+cd lasspia/
 ./downloadDR9.py
 ```
 
 Test your installation by running the 'quickscan.py' routine.
 
 ```
-./baofast.py configs/cmassS.py routines/quickscan.py
+./lasspia.py configs/cmassS.py routines/quickscan.py
 ```
 
 ## A Complete Example
@@ -54,31 +54,31 @@ redshift to distances
 ### Preprocessing
 Run the preprocessing routine, which takes seconds.
 ```
-./baofast.py configs/cmassS_coarse.py routines/preprocessing.py
+./lasspia.py configs/cmassS_coarse.py routines/preprocessing.py
 ```
 View the headers of the preprocessing output file.
 ```
-./baofast.py configs/cmassS_coarse.py routines/showPre.py
+./lasspia.py configs/cmassS_coarse.py routines/showPre.py
 ```
 
 ### Combinatorial
 Run the combinatorial routine, which takes about half an hour.
 ```
-./baofast.py configs/cmassS_coarse.py routines/combinatorial.py
+./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py
 ```
 Alternatively, run the combinatorial routine with parallel jobs.
 ```
-./baofast.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8 --nCores 4
+./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8 --nCores 4
 ```
 Combine the output of the jobs.
 ```
-./baofast.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8
+./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8
 ```
 
 ### Integration
 Run the integration routine, which takes seconds.
 ```
-./baofast.py configs/cmassS_coarse.py routines/integration.py
+./lasspia.py configs/cmassS_coarse.py routines/integration.py
 ```
 
 ### Visualization
@@ -99,7 +99,7 @@ Pending
 
 * **Burton Betchart** - *Initial work* - [betchart](https://github.com/betchart)
 
-See also the list of [contributors](https://github.com/betchart/baofast/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/betchart/lasspia/contributors) who participated in this project.
 
 ## License
 
