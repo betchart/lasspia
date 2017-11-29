@@ -1,4 +1,4 @@
-import baofast as bf
+import lasspia as La
 import math
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -30,7 +30,7 @@ class Chunker(object):
         self.zBins = len(comb.getPre('centerz').data['binCenter'])
         self.binningTheta = comb.config.binningTheta()
         self.diZmax = comb.config.maxDeltaZ()
-        if self.diZmax: self.diZmax *= bf.utils.invBinWidth(comb.config.binningZ())
+        if self.diZmax: self.diZmax *= La.utils.invBinWidth(comb.config.binningZ())
 
         self.ang = comb.getPre("ANG").data
         angzd = comb.getPre('ANGZD').data
@@ -57,12 +57,12 @@ class Chunker(object):
         self.zD2 = self.angzd[slice2].astype(self.typeDR)
 
         self.thetas = self.thetaChunk(slice1, slice2)
-        self.iThetas = bf.utils.toBins(self.thetas, self.binningTheta, dtype=np.int16)
+        self.iThetas = La.utils.toBins(self.thetas, self.binningTheta, dtype=np.int16)
         self.ii = np.all(slice1 == slice2)
         self.dbl = 1 if self.ii else 2
 
 
-class combinatorial(bf.routine):
+class combinatorial(La.routine):
 
     def __call__(self):
         self.hdus.append( self.binCentersTheta() )
@@ -72,7 +72,7 @@ class combinatorial(bf.routine):
         self.writeToFile()
 
     def binCentersTheta(self):
-        centers = np.array( bf.utils.centers(self.config.edgesTheta()),
+        centers = np.array( La.utils.centers(self.config.edgesTheta()),
                             dtype = [("binCenter", np.float64)])
         return fits.BinTableHDU(centers, name="centerTheta")
 
@@ -83,7 +83,7 @@ class combinatorial(bf.routine):
         return self.__sliceChunks__(size)
 
     def __sliceChunks__(self, size):
-        slices = bf.utils.slices(size, self.config.chunkSize())
+        slices = La.utils.slices(size, self.config.chunkSize())
         return [(slices[i],jSlice)
                 for i in range(len(slices))
                 for jSlice in slices[i:]][self.iJob::self.nJobs]
@@ -114,8 +114,8 @@ class combinatorial(bf.routine):
             i2 = regionIndices(*r2)
             schnks = ( self.__sliceChunks__(len(i1)) if r1==r2 else
                        [(s1,s2)
-                        for s1 in bf.utils.slices(len(i1),cz)
-                        for s2 in bf.utils.slices(len(i2),cz)][self.iJob::self.nJobs])
+                        for s1 in La.utils.slices(len(i1),cz)
+                        for s2 in La.utils.slices(len(i2),cz)][self.iJob::self.nJobs])
             for s1,s2 in schnks:
                 yield i1[s1], i2[s2]
         return
@@ -216,7 +216,7 @@ class combinatorial(bf.routine):
             for jF in jobFiles:
                 with fits.open(jF) as h:
                     for name in ['centerTheta','centerZ','pdfZ']:
-                        assert bf.utils.identicalHDUs(name, h0, h)
+                        assert La.utils.identicalHDUs(name, h0, h)
                     fTheta += h['fTheta'].data['count']
                     gThetaZ += csr_matrix(h['gThetaZ'].data, shape=gThetaZ.shape)
                     u = h['uThetaZZ'].data

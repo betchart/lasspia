@@ -1,6 +1,6 @@
-import baofast
+import lasspia as La
 
-class quickscan(baofast.routine):
+class quickscan(La.routine):
 
     def scan(self, label, ctlg):
         print

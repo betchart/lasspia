@@ -1,7 +1,7 @@
-import baofast
+import lasspia as La
 import math
 
-class cmassN(baofast.configuration):
+class cmassN(La.configuration):
 
     def dataDir(self):
         """Directory of catalog files."""
@@ -16,13 +16,19 @@ class cmassN(baofast.configuration):
     def inputFilesObserved(self):
         return [self.dataDir() + "galaxies_DR9_CMASS_North.fits"]
 
-    def catalogRandom(self): return baofast.wrapRandomSDSS(self.inputFilesRandom())
-    def catalogObserved(self): return baofast.wrapObservedSDSS(self.inputFilesObserved())
+    def catalogRandom(self): return La.wrapRandomSDSS(self.inputFilesRandom())
+    def catalogObserved(self): return La.wrapObservedSDSS(self.inputFilesObserved())
 
     def binningZ(self): return {"bins":900, "range":(0.43,0.7)}
     def binningRA(self): return {"bins":3500 , "range":(105,265)}
     def binningDec(self): return {"bins":1600, "range":(-4,57)}
-    def binningTheta(self): return {"bins":3142, "range":(0,math.pi)}
+    #def binningTheta(self): return {"bins":3142, "range":(0,math.pi)}
+    def binningTheta(self):
+        ra = self.maxDeltaRA() * math.pi/180
+        dc = self.maxDeltaDec() * math.pi/180
+        amx = math.acos(math.cos(2*ra) + math.sin(dc)*math.sin(-dc))
+        res = 0.001
+        return {"bins":int(amx/res), "range":(0,amx)}
 
     def chunkSize(self) : return 2000
 

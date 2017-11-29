@@ -1,9 +1,9 @@
-import baofast as bf
+import lasspia as La
 import numpy as np
 from astropy.io import fits
 from scipy.sparse import csr_matrix
 
-class preprocessing(bf.routine):
+class preprocessing(La.routine):
     """Preprocessing for fast 2-point correlations.
 
     Open input catalogs, create histograms, save to file.
@@ -19,7 +19,7 @@ class preprocessing(bf.routine):
         self.writeToFile()
 
     def binCenters(self, edges, name):
-        centers = np.array( bf.utils.centers(edges),
+        centers = np.array( La.utils.centers(edges),
                             dtype = [("binCenter", np.float64)])
         return fits.BinTableHDU(centers, name=name)
 
@@ -84,9 +84,9 @@ class preprocessing(bf.routine):
         binsRA = self.config.binningRA()['bins']
         binsDec = self.config.binningDec()['bins']
 
-        iZ = bf.utils.toBins(ctlgD.z, self.config.binningZ())
-        iRA = bf.utils.toBins(ctlgD.ra, self.config.binningRA())
-        iDec= bf.utils.toBins(ctlgD.dec, self.config.binningDec())
+        iZ = La.utils.toBins(ctlgD.z, self.config.binningZ())
+        iRA = La.utils.toBins(ctlgD.ra, self.config.binningRA())
+        iDec= La.utils.toBins(ctlgD.dec, self.config.binningDec())
         iAng = binsDec*iRA  + iDec
 
         frq = csr_matrix((ctlgD.weight, (iAng, iZ)), shape=(binsRA*binsDec, binsZ))

@@ -3,7 +3,7 @@ from astropy.io import fits
 class routine(object):
 
     def __init__(self, config, nJobs=None, iJob=None):
-        self.config = config  # subclass of baofast.config
+        self.config = config  # subclass of lasspia.config
         self.nJobs = nJobs
         self.iJob = iJob
         self.hdus = [fits.PrimaryHDU()]
@@ -30,4 +30,4 @@ class routine(object):
 
     def combineOutput(self):
         '''Defined in subclasses for paralellizable routines.'''
-        raise Exception("The class '%s(baofast.routine)' does not define 'combineOutput'." % self.__class__.__name__)
+        raise Exception("The class '%s(lasspia.routine)' does not define 'combineOutput'." % self.__class__.__name__)

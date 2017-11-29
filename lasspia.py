@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 
 import sys
-from baofast import utils
+from lasspia import utils
 
 def parseArgs():
     from argparse import ArgumentParser
     parser = ArgumentParser(description="Fast calculation of two-point correlations.")
 
     parser.add_argument('configFile', metavar='configFile', type=str, nargs=1,
-                        help='A python file containing a subclass of baofast.configuration')
+                        help='A python file containing a subclass of lasspia.configuration')
 
     parser.add_argument('routineFile', metavar='routineFile', type=str, nargs=1,
-                        help='A python file containing a subclass of baofast.routine')
+                        help='A python file containing a subclass of lasspia.routine')
 
     parser.add_argument('--nJobs', metavar='nJobs', type=int, nargs=1,
                         help='Divide the processing into nJobs portions: process all jobs in parallel (with --nCores), or process just one job (with --iJob), or combine job outputs.')

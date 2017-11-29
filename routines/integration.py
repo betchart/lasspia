@@ -1,10 +1,10 @@
 import math
 import numpy as np
-import baofast as bf
+import lasspia as La
 from astropy.io import fits
 from scipy.integrate import quad
 
-class integration(bf.routine):
+class integration(La.routine):
 
     def __call__(self):
         self.pdfz = self.getInput('pdfZ').data['probability']
@@ -14,7 +14,7 @@ class integration(bf.routine):
         DR = np.zeros(binsS)
         DD = np.zeros(binsS)
 
-        for slcT in bf.utils.slices(len(self.getInput('centertheta').data),
+        for slcT in La.utils.slices(len(self.getInput('centertheta').data),
                                     self.config.integrationChunkTheta()):
             s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
             RR += self.calcRR(s, slcT)
@@ -82,7 +82,7 @@ class integration(bf.routine):
         return dd
 
     def centersS(self):
-        return bf.utils.centers(self.config.edgesFromBinning(self.config.binningS()))
+        return La.utils.centers(self.config.edgesFromBinning(self.config.binningS()))
 
     def zIntegral(self):
         zCenters = self.getInput('centerz').data['binCenter']
