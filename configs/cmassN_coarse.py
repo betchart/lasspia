@@ -1,7 +1,7 @@
-import baofast
+import lasspia as La
 import math
 
-class cmassN_coarse(baofast.configuration):
+class cmassN_coarse(La.configuration):
 
     def dataDir(self):
         """Directory of catalog files."""
@@ -16,8 +16,8 @@ class cmassN_coarse(baofast.configuration):
     def inputFilesObserved(self):
         return [self.dataDir() + "galaxies_DR9_CMASS_North.fits"]
 
-    def catalogRandom(self): return baofast.wrapRandomSDSS(self.inputFilesRandom())
-    def catalogObserved(self): return baofast.wrapObservedSDSS(self.inputFilesObserved())
+    def catalogRandom(self): return La.wrapRandomSDSS(self.inputFilesRandom())
+    def catalogObserved(self): return La.wrapObservedSDSS(self.inputFilesObserved())
 
     def binningZ(self): return {"bins":300, "range":(0.43,0.7)}
     def binningRA(self): return {"bins":1200 , "range":(105,265)}

@@ -1,9 +1,9 @@
-import baofast as bf
+import lasspia as La
 import numpy as np
 from astropy.io import fits
 from scipy.sparse import csr_matrix
 
-class xcheckPreprocessing(bf.routine):
+class xcheckPreprocessing(La.routine):
 
     def __call__(self):
 

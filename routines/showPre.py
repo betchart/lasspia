@@ -1,7 +1,7 @@
-import baofast
+import lasspia as La
 from astropy.io import fits
 
-class showPre(baofast.routine):
+class showPre(La.routine):
 
     def __call__(self):
         self.openPre()
