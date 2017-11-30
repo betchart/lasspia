@@ -38,7 +38,6 @@ class configuration(object):
     def edgesDec(self): return self.edgesFromBinning(self.binningDec())
     def edgesTheta(self): return self.edgesFromBinning(self.binningTheta())
 
-    def integrationChunkTheta(self): pass
     def binningS(self): pass
 
     def __init__(self):

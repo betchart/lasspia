@@ -10,25 +10,18 @@ class integration(La.routine):
         self.pdfz = self.getInput('pdfZ').data['probability']
 
         binsS = self.config.binningS()['bins']
-        RR = np.zeros(binsS)
-        DR = np.zeros(binsS)
-        DD = np.zeros(binsS)
 
-        for slcT in La.utils.slices(len(self.getInput('centertheta').data),
-                                    self.config.integrationChunkTheta()):
-            s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
-            RR += self.calcRR(s, slcT)
-            DR += self.calcDR(s, slcT)
-            DD += self.calcDD(s, slcT)
-        RR /= sum(RR)
-        DR /= sum(DR)
-        DD /= np.sum(self.getInput('uThetaZZ').data['count'])
+        sizeTh = len(self.getInput('centertheta').data)
+        slcT = ( slice(None) if self.iJob is None else
+                 La.utils.slices(sizeTh,
+                                 sizeTh/(self.nJobs-1))[self.iJob] )
 
+        s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
         hdu = fits.BinTableHDU.from_columns([
             fits.Column(name='s', array=self.centersS(), format='E'),
-            fits.Column(name='RR', array=RR, format='E'),
-            fits.Column(name='DR', array=DR, format='E'),
-            fits.Column(name='DD', array=DD, format='E')],
+            fits.Column(name='RR', array=self.calcRR(s, slcT), format='D'),
+            fits.Column(name='DR', array=self.calcDR(s, slcT), format='D'),
+            fits.Column(name='DD', array=self.calcDD(s, slcT), format='D')],
                                             name="TPCF")
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
@@ -55,6 +48,8 @@ class integration(La.routine):
         ft = self.getInput('fTheta').data['count'][slcT]
         counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:]
         rr = np.histogram(s, weights=counts, **self.config.binningS())[0]
+        if self.iJob is None:
+            rr /= sum(rr)
         del counts
         return rr
 
@@ -62,12 +57,15 @@ class integration(La.routine):
         gtz = self.getInput('gThetaZ').data
         counts = gtz[slcT,:,None] * self.pdfz[None,None,:]
         dr = np.histogram(s, weights=counts, **self.config.binningS())[0]
+        if self.iJob is None:
+            dr /= sum(dr)
         del counts
         return dr
 
     def calcDD(self,s, slcT):
         utzz = self.getInput('uThetaZZ').data
-        slc = slice(-1 if (utzz['binZdZ'][-1]+1)==s.shape[1]**2 else None)
+        overflow = utzz['binZdZ'][-1]+1 == s.shape[1]**2
+        slc = slice(-1 if overflow else None)
 
         iThetas = utzz['binTheta'][slc]
         mask = np.logical_and(slcT.start <= iThetas, iThetas < slcT.stop)
@@ -78,7 +76,12 @@ class integration(La.routine):
         iZ = iZdZ / s.shape[1]
         diZ = iZdZ % s.shape[1]
         iZ2 = iZ + diZ
+
         dd = np.histogram(s[iTh,iZ,iZ2], weights=counts, **self.config.binningS())[0]
+        if overflow and self.iJob in [0,None]:
+            dd[-1] = dd[-1] + utzz['count'][-1]
+        if self.iJob is None:
+            dd /= sum(dd)
         return dd
 
     def centersS(self):
@@ -104,3 +107,21 @@ class integration(La.routine):
     def getInput(self, name):
         hdulist = fits.open(self.inputFileName)
         return hdulist[name]
+
+
+    def combineOutput(self):
+        jobFiles = [self.outputFileName + self.jobString(iJob)
+                    for iJob in range(self.nJobs)]
+
+        with fits.open(jobFiles[0]) as h0:
+            hdu = h0['TPCF']
+            for jF in jobFiles[1:]:
+                with fits.open(jF) as jfh:
+                    assert np.all( hdu.data['s'] == jfh['TPCF'].data['s'])
+                    for col in ['RR','DR','DD']:
+                        hdu.data[col] += jfh['TPCF'].data[col]
+            for col in ['RR','DR','DD']:
+                hdu.data[col] /= sum(hdu.data[col])
+            self.hdus.append(hdu)
+            self.writeToFile()
+        return
