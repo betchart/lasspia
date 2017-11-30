@@ -46,10 +46,10 @@ configuration `configs/cmassS_coarse.py`.  This configuration differs
 from `configs/cmassS.py` by using fewer bins and not employing any
 strategies to reduce the number of evaluated galaxy pairs.  The
 processing is divided into stages, each with their own corresponding
-routine; * 'preprocessing' histograms the data from the galaxy
-catalogs * 'combinatorial' makes distributions of galaxy pairs *
-'integration' incorporates cosmological data to convert angles and
-redshift to distances
+routine:
+* `preprocessing.py` histograms the data from the galaxy catalogs
+* `combinatorial.py` makes distributions of galaxy pairs
+* `integration.py` incorporates cosmological data to convert angles and redshift to distances
 
 ### Preprocessing
 Run the preprocessing routine, which takes seconds.
@@ -85,7 +85,7 @@ Run the integration routine, which takes seconds.
 ./lasspia.py configs/cmassS_coarse.py routines/integration.py
 ```
 If you get "MemoryError", you can break the integration into slices of
-bins of theta by passing ```--nJobs``` and ```--nCores``` (or ```--iJob```)
+bins of theta by passing `--nJobs` and `--nCores` (or `--iJob`)
 arguments, and combining the output as in the prior step example.
 
 View the headers of the output file.
