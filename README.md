@@ -85,8 +85,8 @@ Run the integration routine, which takes seconds.
 ./lasspia.py configs/cmassS_coarse.py routines/integration.py
 ```
 If you get "MemoryError", you can break the integration into slices of
-bins of theta by passing --nJobs and --nCores or --iJob arguments, and
-combining the output as in the prior step example.
+bins of theta by passing ```--nJobs``` and ```--nCores``` (or ```--iJob```)
+arguments, and combining the output as in the prior step example.
 
 View the headers of the output file.
 ```
