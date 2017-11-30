@@ -22,6 +22,9 @@ def parseArgs():
     parser.add_argument('--nCores', metavar='nCores', type=int, nargs=1,
                         help='Use nCores in parallel (requires --nJobs).')
 
+    parser.add_argument('--show', action='store_true',
+                        help='Show info and HDU headers of the output file.')
+
     args = parser.parse_args()
     return args
 
@@ -48,8 +51,8 @@ if __name__ == "__main__":
 
     if type(kwargs) is dict:
         routine = getInstance(args.routineFile, (config,), kwargs)
-        if args.nJobs and not args.iJob:
-            routine.combineOutput()
+        if args.show: routine.showFitsHeaders()
+        elif args.nJobs: routine.combineOutput()
         else: routine()
 
     elif type(kwargs) is list:
