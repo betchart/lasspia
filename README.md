@@ -9,7 +9,7 @@ Instructions to run the project on your local machine.
 ### Prerequisites
 
 This implementation depends on the following Python packages:
-* [AstroPy (v1)](http://www.astropy.org)
+* [AstroPy](http://www.astropy.org)
 * [SciPy library](https://github.com/scipy/scipy)
 * [NumPy](http://www.numpy.org)
 * [Matplotlib](http://matplotlib.org) (optional)
