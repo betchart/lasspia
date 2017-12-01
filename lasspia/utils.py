@@ -48,5 +48,5 @@ class qWorker(object):
         return
 
 
-def identicalHDUs(nameHDU, hdus1, hdus2):
-    return fits.HDUDiff(hdus1[nameHDU], hdus2[nameHDU]).identical
+def hduDiff(nameHDU, hdus1, hdus2):
+    return fits.HDUDiff(hdus1[nameHDU], hdus2[nameHDU])

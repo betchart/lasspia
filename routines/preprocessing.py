@@ -2,6 +2,7 @@ import lasspia as La
 import numpy as np
 from astropy.io import fits
 from scipy.sparse import csr_matrix
+from lasspia.timing import timedHDU
 
 class preprocessing(La.routine):
     """Preprocessing for fast 2-point correlations.
@@ -18,6 +19,7 @@ class preprocessing(La.routine):
         self.hdus.extend( self.ang(ctlgR, ctlgD) )
         self.writeToFile()
 
+    @timedHDU
     def binCenters(self, edges, name):
         centers = np.array( La.utils.centers(edges),
                             dtype = [("binCenter", np.float64)])
@@ -35,6 +37,7 @@ class preprocessing(La.routine):
                 np.int32 if iMax < np.iinfo(np.int32).max else
                 np.int64)
 
+    @timedHDU
     def pdfZ(self, ctlg):
         frq, edges = np.histogram(ctlg.z,
                                   weights = ctlg.weightZ / sum(ctlg.weightZ),
@@ -50,6 +53,7 @@ class preprocessing(La.routine):
 
         return hdu
 
+    @timedHDU
     def ang(self, ctlgR, ctlgD):
         '''HDU with angular binning for both random and observed catalogs.
 

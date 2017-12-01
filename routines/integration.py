@@ -3,18 +3,25 @@ import numpy as np
 import lasspia as La
 from astropy.io import fits
 from scipy.integrate import quad
+from lasspia.timing import timedHDU
 
 class integration(La.routine):
 
     def __call__(self):
+        self.hdus.append(self.tpcf())
+        self.writeToFile()
+        return
+
+    @timedHDU
+    def tpcf(self):
         self.pdfz = self.getInput('pdfZ').data['probability']
 
         binsS = self.config.binningS()['bins']
 
-        sizeTh = len(self.getInput('centertheta').data)
+        binsTh = len(self.getInput('centertheta').data)
         slcT = ( slice(None) if self.iJob is None else
-                 La.utils.slices(sizeTh,
-                                 sizeTh/(self.nJobs-1))[self.iJob] )
+                 La.utils.slices(binsTh,
+                                 binsTh/self.nJobs)[self.iJob] )
 
         s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
         hdu = fits.BinTableHDU.from_columns([
@@ -25,9 +32,7 @@ class integration(La.routine):
                                             name="TPCF")
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
-        self.hdus.append(hdu)
-        self.writeToFile()
-        return
+        return hdu
 
     def sigmaPiGrids(self, slcT):
         '''A cubic grid of sigma (pi) values
@@ -68,10 +73,11 @@ class integration(La.routine):
         slc = slice(-1 if overflow else None)
 
         iThetas = utzz['binTheta'][slc]
-        mask = np.logical_and(slcT.start <= iThetas, iThetas < slcT.stop)
+        mask = (slice(None) if slcT==slice(None) else
+                np.logical_and(slcT.start <= iThetas, iThetas < slcT.stop))
 
         counts = utzz['count'][slc][mask]
-        iTh = iThetas[mask] - slcT.start
+        iTh = iThetas[mask] - (slcT.start or 0)
         iZdZ = utzz['binZdZ'][slc][mask]
         iZ = iZdZ / s.shape[1]
         diZ = iZdZ % s.shape[1]
@@ -115,13 +121,16 @@ class integration(La.routine):
 
         with fits.open(jobFiles[0]) as h0:
             hdu = h0['TPCF']
+            cputime = hdu.header['cputime']
             for jF in jobFiles[1:]:
                 with fits.open(jF) as jfh:
                     assert np.all( hdu.data['s'] == jfh['TPCF'].data['s'])
+                    cputime += jfh['TPCF'].header['cputime']
                     for col in ['RR','DR','DD']:
                         hdu.data[col] += jfh['TPCF'].data[col]
             for col in ['RR','DR','DD']:
                 hdu.data[col] /= sum(hdu.data[col])
+            hdu.header['cputime'] = cputime
             self.hdus.append(hdu)
             self.writeToFile()
         return
