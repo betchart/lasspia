@@ -2,6 +2,7 @@ from multiprocessing import JoinableQueue,Process
 import sys,traceback
 from astropy.io import fits
 import numpy as np
+import math
 
 def centers(leftEdges):
     return leftEdges[:-1] + 0.5 * (leftEdges[1:] - leftEdges[:-1])
@@ -20,7 +21,8 @@ def binRegions(delta, binning):
     iDelta = int(delta * invBinWidth(binning))
     return slices(binning['bins'], iDelta)
 
-def slices(size, step):
+def slices(size, step=None, N=None):
+    step = step or int(math.ceil(size/N))
     splits = range(0, size, step if step else size)
     return [slice(i,j) for i,j in zip(splits,splits[1:]+[size])]
 

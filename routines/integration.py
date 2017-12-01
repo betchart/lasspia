@@ -18,10 +18,9 @@ class integration(La.routine):
 
         binsS = self.config.binningS()['bins']
 
-        binsTh = len(self.getInput('centertheta').data)
-        slcT = ( slice(None) if self.iJob is None else
-                 La.utils.slices(binsTh,
-                                 binsTh/self.nJobs)[self.iJob] )
+        slcT =( slice(None) if self.iJob is None else
+                La.utils.slices(len(self.getInput('centertheta').data),
+                                N=self.nJobs)[self.iJob] )
 
         s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
         hdu = fits.BinTableHDU.from_columns([
