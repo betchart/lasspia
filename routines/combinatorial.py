@@ -3,6 +3,7 @@ import math
 import numpy as np
 from scipy.sparse import csr_matrix
 from astropy.io import fits
+from lasspia.timing import timedHDU
 
 DEGTORAD = math.pi / 180
 
@@ -68,9 +69,10 @@ class combinatorial(La.routine):
         self.hdus.append( self.binCentersTheta() )
         self.hdus.append( self.getPre('centerZ'))
         self.hdus.append( self.getPre('pdfZ'))
-        self.hdus.extend( self.fguHDU(*self.fguLoop()) )
+        self.hdus.extend( self.fguHDU() )
         self.writeToFile()
 
+    @timedHDU
     def binCentersTheta(self):
         centers = np.array( La.utils.centers(self.config.edgesTheta()),
                             dtype = [("binCenter", np.float64)])
@@ -181,7 +183,9 @@ class combinatorial(La.routine):
 
         return (fTheta, gThetaZ, uThetaZZ)
 
-    def fguHDU(self, fTheta, gThetaZ, uThetaZZ):
+    @timedHDU
+    def fguHDU(self, fgu=None):
+        fTheta, gThetaZ, uThetaZZ = fgu if fgu else self.fguLoop()
 
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
         iTheta, iZdZ = uThetaZZ.nonzero()
@@ -212,21 +216,25 @@ class combinatorial(La.routine):
              uThetaZZ) = self.fguInit(h0['fTheta'].data['count'].dtype.type,
                                       h0['uThetaZZ'].data['count'].dtype.type,
                                       len(h0['centerZ'].data))
+            cputime = 0.
 
             for jF in jobFiles:
                 with fits.open(jF) as h:
-                    for name in ['centerTheta','centerZ','pdfZ']:
-                        assert La.utils.identicalHDUs(name, h0, h)
+                    for name in ['centerZ','pdfZ']:
+                        assert La.utils.hduDiff(name, h0, h).identical
+                    assert La.utils.hduDiff('centerTheta', h0, h).diff_data.identical
                     fTheta += h['fTheta'].data['count']
                     gThetaZ += csr_matrix(h['gThetaZ'].data, shape=gThetaZ.shape)
                     u = h['uThetaZZ'].data
                     uThetaZZ += csr_matrix((u['count'], (u['binTheta'],u['binZdZ'])),
                                            shape=uThetaZZ.shape)
+                    cputime += h['uThetaZZ'].header['cputime']
 
             self.hdus.append(h0["centerTheta"])
             self.hdus.append(h0["centerZ"])
             self.hdus.append(h0["pdfZ"])
             fTheta /= 2
             uThetaZZ /= 2
-            self.hdus.extend(self.fguHDU(fTheta, gThetaZ, uThetaZZ))
+            self.hdus.extend(self.fguHDU((fTheta, gThetaZ, uThetaZZ)))
+            self.hdus[-1].header['cputime'] = cputime
             self.writeToFile()
