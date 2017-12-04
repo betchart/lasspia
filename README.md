@@ -20,20 +20,24 @@ The included configurations rely on DR9 data from the Sloan Digital Sky Survey:
 ### Installing
 
 Clone the repository to your local system:
-
 ```
 git clone https://github.com/betchart/lasspia.git
 ```
 
-Download the SDSS galaxy survey catalogs:
+If desired, use virtualenv to install the prerequisites:
+```
+virtualenv venv
+source venv/bin/activate
+pip install numpy astropy scipy
+```
 
+Download the SDSS galaxy survey catalogs:
 ```
 cd lasspia/
 ./downloadDR9.py
 ```
 
 Test your installation by running the 'quickscan.py' routine.
-
 ```
 ./lasspia.py configs/cmassS.py routines/quickscan.py
 ```
