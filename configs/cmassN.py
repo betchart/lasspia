@@ -5,7 +5,7 @@ class cmassN(La.configuration):
 
     def dataDir(self):
         """Directory of catalog files."""
-        return 'data/'
+        return '../data/'
 
     def outputLocation(self):
         return self.dataDir()

@@ -3,7 +3,7 @@
 import os
 import urllib
 
-out = 'data/'
+out = '../data/'
 files = ['galaxies_DR9_CMASS_North.fits',
          'galaxies_DR9_CMASS_South.fits',
          'randoms_DR9_CMASS_North.fits',
