@@ -19,6 +19,9 @@ def parseArgs():
     parser.add_argument('--iJob', metavar='iJob', type=int, nargs='+',
                         help='Index of the job to process (requires --nJobs).')
 
+    parser.add_argument('--iJobEnv', metavar='iJobEnv', type=str, nargs=1,
+                        help='Environment variable containing index of the job to process (requires --nJobs).')
+
     parser.add_argument('--nCores', metavar='nCores', type=int, nargs=1,
                         help='Use nCores in parallel (requires --nJobs).')
 
@@ -26,8 +29,19 @@ def parseArgs():
                         help='Show info and HDU headers of the output file.')
 
     args = parser.parse_args()
+    parseEnv(args)
     return args
 
+def parseEnv(args):
+    if not args.iJob and args.iJobEnv:
+        import os
+        try:
+            iJob = int(os.environ[args.iJobEnv[0]])
+            args.iJob = [iJob]
+        except KeyError:
+            print "No such environment variable %s" % args.iJobEnv[0]
+            exit()
+    return
 
 def getInstance(argFile, args = (), kwargs={}):
     path = argFile[0].split('/')
