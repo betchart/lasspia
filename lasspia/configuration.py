@@ -47,6 +47,10 @@ class configuration(object):
     @property
     def name(self) : return self.__class__.__name__
         
+    @property
+    def nWriteAttempts(self):
+        return 10
+
     def stageFileName(self, stage):
         return '/'.join([self.outputLocation().rstrip('/'),
                          "%s_%s.fits" % (self.name, str(stage))])

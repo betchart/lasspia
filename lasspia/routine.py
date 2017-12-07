@@ -22,9 +22,22 @@ class routine(object):
         return self.config.stageFileName( self.__class__.__name__) + self.jobString()
 
     def writeToFile(self):
+        print >> self.config.outstream, "Writing %s" % self.outputFileName
         hdulist = fits.HDUList(self.hdus)
-        hdulist.writeto(self.outputFileName, clobber=True) # clobber is overwrite in astropy v2
-        print >> self.config.outstream, "Wrote %s" % self.outputFileName
+        if os.path.exists(self.outputFileName):
+            os.remove(self.outputFileName)
+        for iTry in range(self.config.nWriteAttempts):
+            try:
+                hdulist.writeto(self.outputFileName)
+            except IOError as e:
+                print >> self.config.outstream, e
+            if os.path.exists(self.outputFileName):
+                print >> self.config.outstream, "Wrote %s" % self.outputFileName
+                break
+            else:
+                print >> self.config.outstream, "Attempt %d failed: hdulist.writeto(%s)" % (iTry, self.outputFileName)
+                from time import sleep
+                sleep(10)
 
     def showFitsHeaders(self):
         if not os.path.exists(self.outputFileName):
