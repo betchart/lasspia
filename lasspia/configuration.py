@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import utils
 
@@ -40,9 +41,9 @@ class configuration(object):
 
     def binningS(self): pass
 
-    def __init__(self):
-        pass
-    
+    def __init__(self, outstream=sys.stdout):
+        self.outstream = outstream
+
     @property
     def name(self) : return self.__class__.__name__
         

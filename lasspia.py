@@ -28,6 +28,9 @@ def parseArgs():
     parser.add_argument('--show', action='store_true',
                         help='Show info and HDU headers of the output file.')
 
+    parser.add_argument('--output', metavar='output', type=str, nargs=1,
+                        help='Direct stdout to this file.')
+
     args = parser.parse_args()
     parseEnv(args)
     return args
@@ -60,7 +63,8 @@ def getKWs(args):
 
 if __name__ == "__main__":
     args = parseArgs()
-    config = getInstance(args.configFile)
+    outstream = sys.stdout if not args.output else open(args.output[0], 'w')
+    config = getInstance(args.configFile, kwargs = {'outstream':outstream})
     kwargs = getKWs(args)
 
     if type(kwargs) is dict:
@@ -75,3 +79,4 @@ if __name__ == "__main__":
 
     else:
         pass
+    if args.output: outstream.close()

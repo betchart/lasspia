@@ -1,4 +1,5 @@
 from astropy.io import fits
+import sys
 import os
 
 class routine(object):
@@ -23,21 +24,21 @@ class routine(object):
     def writeToFile(self):
         hdulist = fits.HDUList(self.hdus)
         hdulist.writeto(self.outputFileName, clobber=True) # clobber is overwrite in astropy v2
-        print "Wrote %s" % self.outputFileName
+        print >> self.config.outstream, "Wrote %s" % self.outputFileName
 
     def showFitsHeaders(self):
         if not os.path.exists(self.outputFileName):
-            print 'Not found:', self.outputFileName
-            print 'Perhaps you need to first create',
-            print 'it by running the routine.'
+            print >> self.config.outstream, 'Not found:', self.outputFileName
+            print >> self.config.outstream, 'Perhaps you need to first create',
+            print >> self.config.outstream, 'it by running the routine.'
             return
 
         with fits.open(self.outputFileName) as hdus:
-            hdus.info()
+            hdus.info(self.config.outstream)
             for h in hdus[1:]:
-                print
-                print repr(h.header)
-            print
+                print >> self.config.outstream
+                print >> self.config.outstream, repr(h.header)
+            print >> self.config.outstream
         return
 
     def __call__(self):
