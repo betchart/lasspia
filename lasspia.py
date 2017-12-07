@@ -57,7 +57,8 @@ def getKWs(args):
     if args.nCores or args.iJob:
         n = args.nJobs[0] if args.nJobs else 1
         jobs = args.iJob if args.iJob else range(args.nJobs[0])
-        return [{"nJobs": n, "iJob":i} for i in jobs]
+        jobArgs = [{"nJobs": n, "iJob":i} for i in jobs]
+        return jobArgs[0] if len(args.iJob)==1 else jobArgs
     if args.nJobs: return {"nJobs":args.nJobs[0]}
     return {}
 
