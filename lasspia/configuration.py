@@ -41,8 +41,8 @@ class configuration(object):
 
     def binningS(self): pass
 
-    def __init__(self, outstream=sys.stdout):
-        self.outstream = outstream
+    def __init__(self, txtToFile=False):
+        self.txtToFile = txtToFile
 
     @property
     def name(self) : return self.__class__.__name__
