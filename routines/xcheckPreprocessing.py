@@ -17,7 +17,7 @@ class xcheckPreprocessing(La.routine):
         angzd = getAngZD((len(ang),len(zCenter)))
         assert len(ang['countD'].nonzero()[0]) == len(angzd.sum(axis=1).nonzero()[0])
         assert 1e-6 > abs(angzd.sum() - ang['countD'].sum()) / ang['countD'].sum()
-        print 'Cross-checks pass!'
+        print>>self.out, 'Cross-checks pass!'
 
     @property
     def inputFileName(self):

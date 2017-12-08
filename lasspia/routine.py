@@ -25,32 +25,32 @@ class routine(object):
     def outputFileName(self):
         return self.config.stageFileName( self.__class__.__name__) + self.jobString()
 
-    def outStream(self):
-        return sys.stdout if not self.streamFile else open(self.streamFile, 'a')
-    
+    @property
+    def out(self):
+        if not hasattr(self, '_ostream') or self._ostream.closed:
+            self._ostream = sys.stdout if not self.streamFile else open(self.streamFile, 'a')
+        return self._ostream
+
     def writeToFile(self):
         hdulist = fits.HDUList(self.hdus)
         if os.path.exists(self.outputFileName):
             os.remove(self.outputFileName)
         hdulist.writeto(self.outputFileName)
-        with self.outStream() as f:
-            print>>f, "Wrote %s" % self.outputFileName
+        print>>self.out, "Wrote %s" % self.outputFileName
 
     def showFitsHeaders(self):
         if not os.path.exists(self.outputFileName):
-            with self.outStream() as f:
-                print>>f, 'Not found:', self.outputFileName
-                print>>f, 'Perhaps you need to first create',
-                print>>f, 'it by running the routine.'
+            print>>self.out, 'Not found:', self.outputFileName
+            print>>self.out, 'Perhaps you need to first create',
+            print>>self.out, 'it by running the routine.'
             return
 
         with fits.open(self.outputFileName) as hdus:
             hdus.info(self.outstream)
-            with self.outStream as f:
-                for h in hdus[1:]:
-                    print>>f
-                    print>>f, repr(h.header)
-                print>>f
+            for h in hdus[1:]:
+                print>>self.out
+                print>>self.out, repr(h.header)
+            print>>self.out
         return
 
     def __call__(self):
