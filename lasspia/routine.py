@@ -9,8 +9,10 @@ class routine(object):
         self.nJobs = nJobs
         self.iJob = iJob
         self.hdus = [fits.PrimaryHDU()]
-        self.outstream = (sys.stdout if not config.txtToFile else
-                          open(self.outputFileName.replace('fits','txt'),'w'))
+        self.streamFile = (None if not config.txtToFile else
+                           self.outputFileName.replace('fits','txt'))
+        if self.streamFile and os.path.exists(self.streamFile):
+            os.remove(self.streamFile)
 
     def jobString(self, iJob=None):
         if iJob is None:
@@ -23,26 +25,32 @@ class routine(object):
     def outputFileName(self):
         return self.config.stageFileName( self.__class__.__name__) + self.jobString()
 
+    def outStream(self):
+        return sys.stdout if not self.streamFile else open(self.streamFile, 'a')
+    
     def writeToFile(self):
         hdulist = fits.HDUList(self.hdus)
         if os.path.exists(self.outputFileName):
             os.remove(self.outputFileName)
         hdulist.writeto(self.outputFileName)
-        print >> self.outstream, "Wrote %s" % self.outputFileName
+        with self.outStream() as f:
+            print>>f, "Wrote %s" % self.outputFileName
 
     def showFitsHeaders(self):
         if not os.path.exists(self.outputFileName):
-            print >> self.outstream, 'Not found:', self.outputFileName
-            print >> self.outstream, 'Perhaps you need to first create',
-            print >> self.outstream, 'it by running the routine.'
+            with self.outStream() as f:
+                print>>f, 'Not found:', self.outputFileName
+                print>>f, 'Perhaps you need to first create',
+                print>>f, 'it by running the routine.'
             return
 
         with fits.open(self.outputFileName) as hdus:
             hdus.info(self.outstream)
-            for h in hdus[1:]:
-                print >> self.outstream
-                print >> self.outstream, repr(h.header)
-            print >> self.outstream
+            with self.outStream as f:
+                for h in hdus[1:]:
+                    print>>f
+                    print>>f, repr(h.header)
+                print>>f
         return
 
     def __call__(self):
