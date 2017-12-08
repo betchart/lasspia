@@ -24,22 +24,11 @@ class routine(object):
         return self.config.stageFileName( self.__class__.__name__) + self.jobString()
 
     def writeToFile(self):
-        print >> self.outstream, "Writing %s" % self.outputFileName
         hdulist = fits.HDUList(self.hdus)
         if os.path.exists(self.outputFileName):
             os.remove(self.outputFileName)
-        for iTry in range(self.config.nWriteAttempts):
-            try:
-                hdulist.writeto(self.outputFileName)
-            except IOError as e:
-                print >> self.outstream, e
-            if os.path.exists(self.outputFileName):
-                print >> self.outstream, "Wrote %s" % self.outputFileName
-                break
-            else:
-                print >> self.outstream, "Attempt %d failed: hdulist.writeto(%s)" % (iTry, self.outputFileName)
-                from time import sleep
-                sleep(10)
+        hdulist.writeto(self.outputFileName)
+        print >> self.outstream, "Wrote %s" % self.outputFileName
 
     def showFitsHeaders(self):
         if not os.path.exists(self.outputFileName):
