@@ -44,8 +44,8 @@ class qWorker(object):
         while True:
             try: q.get()()
             except Exception as e:
-                traceback.print_tb(sys.exc_info()[2], limit=20, file=sys.stdout)
-                print e.__class__.__name__,":", e
+                traceback.print_tb(sys.exc_info()[2], limit=20, file=sys.stderr)
+                print >> sys.stderr, e.__class__.__name__,":", e
             q.task_done()
         return
 
