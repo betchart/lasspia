@@ -46,7 +46,7 @@ class routine(object):
             return
 
         with fits.open(self.outputFileName) as hdus:
-            hdus.info(self.outstream)
+            hdus.info(self.out)
             for h in hdus[1:]:
                 print>>self.out
                 print>>self.out, repr(h.header)
