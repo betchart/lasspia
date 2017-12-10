@@ -22,7 +22,7 @@ class cmassN(La.configuration):
     def binningZ(self): return {"bins":900, "range":(0.43,0.7)}
     def binningRA(self): return {"bins":3500 , "range":(105,265)}
     def binningDec(self): return {"bins":1600, "range":(-4,57)}
-    def binningTheta(self): return{"bins":1571, "range":(0,math.pi/2)}
+    def binningTheta(self): return{"bins":3142/2, "range":(0,math.pi/2)}
 
     def chunkSize(self) : return 2000
 

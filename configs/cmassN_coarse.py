@@ -9,3 +9,6 @@ class cmassN_coarse(cmassN):
     def binningDec(self): return {"bins":600, "range":(-4,57)}
     def binningTheta(self): return {"bins":1000, "range":(0,math.pi)}
 
+    def maxDeltaRA(self): return None
+    def maxDeltaDec(self): return None
+    def maxDeltaZ(self): return None
