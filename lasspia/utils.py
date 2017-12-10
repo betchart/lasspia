@@ -28,6 +28,9 @@ def slices(size, step=None, N=None):
 
 
 def callInParallel(nCores, itemsToCall):
+    if len(itemsToCall)==1: return itemsToCall[0]()
+    if nCores<2: return map(lambda f: f(), itemsToCall)
+
     q = JoinableQueue()
     processes=[Process(target=qWorker(), args=(q,)) for _ in range(nCores)]
     for p in processes:
