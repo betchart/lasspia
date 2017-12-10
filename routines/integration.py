@@ -30,6 +30,10 @@ class integration(La.routine):
             fits.Column(name='DD', array=self.calcDD(s, slcT, 'count'), format='D'),
             fits.Column(name='DDe2', array=self.calcDD(s, slcT, 'err2'), format='D')],
                                             name="TPCF")
+        if self.iJob is None:
+            hdu['DDe2'] /= sum(hdu['DD'])**2
+            hdu['DD'] /= sum(hdu['DD'])
+
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
         return hdu
@@ -86,8 +90,6 @@ class integration(La.routine):
         dd = np.histogram(s[iTh,iZ,iZ2], weights=counts, **self.config.binningS())[0]
         if overflow and self.iJob in [0,None]:
             dd[-1] = dd[-1] + utzz[wName][-1]
-        if self.iJob is None:
-            dd /= sum(dd)
         return dd
 
     def centersS(self):
@@ -126,8 +128,9 @@ class integration(La.routine):
                 with fits.open(jF) as jfh:
                     assert np.all( hdu.data['s'] == jfh['TPCF'].data['s'])
                     cputime += jfh['TPCF'].header['cputime']
-                    for col in ['RR','DR','DD']:
+                    for col in ['RR','DR','DD','DDe2']:
                         hdu.data[col] += jfh['TPCF'].data[col]
+            hdu.data['DDe2'] /= sum(hdu.data['DD'])**2
             for col in ['RR','DR','DD']:
                 hdu.data[col] /= sum(hdu.data[col])
             hdu.header['cputime'] = cputime
