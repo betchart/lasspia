@@ -27,7 +27,8 @@ class integration(La.routine):
             fits.Column(name='s', array=self.centersS(), format='E'),
             fits.Column(name='RR', array=self.calcRR(s, slcT), format='D'),
             fits.Column(name='DR', array=self.calcDR(s, slcT), format='D'),
-            fits.Column(name='DD', array=self.calcDD(s, slcT), format='D')],
+            fits.Column(name='DD', array=self.calcDD(s, slcT, 'count'), format='D'),
+            fits.Column(name='DDe2', array=self.calcDD(s, slcT, 'err2'), format='D')],
                                             name="TPCF")
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
@@ -66,7 +67,7 @@ class integration(La.routine):
         del counts
         return dr
 
-    def calcDD(self,s, slcT):
+    def calcDD(self,s, slcT, wName='count'):
         utzz = self.getInput('uThetaZZ').data
         overflow = utzz['binZdZ'][-1]+1 == s.shape[1]**2
         slc = slice(-1 if overflow else None)
@@ -75,7 +76,7 @@ class integration(La.routine):
         mask = (slice(None) if slcT==slice(None) else
                 np.logical_and(slcT.start <= iThetas, iThetas < slcT.stop))
 
-        counts = utzz['count'][slc][mask]
+        counts = utzz[wName][slc][mask]
         iTh = iThetas[mask] - (slcT.start or 0)
         iZdZ = utzz['binZdZ'][slc][mask]
         iZ = iZdZ / s.shape[1]
@@ -84,7 +85,7 @@ class integration(La.routine):
 
         dd = np.histogram(s[iTh,iZ,iZ2], weights=counts, **self.config.binningS())[0]
         if overflow and self.iJob in [0,None]:
-            dd[-1] = dd[-1] + utzz['count'][-1]
+            dd[-1] = dd[-1] + utzz[wName][-1]
         if self.iJob is None:
             dd /= sum(dd)
         return dd

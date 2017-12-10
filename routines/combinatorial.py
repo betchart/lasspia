@@ -36,6 +36,7 @@ class Chunker(object):
         self.ang = comb.getPre("ANG").data
         angzd = comb.getPre('ANGZD').data
         self.angzd = csr_matrix((angzd["count"], (angzd['iAlign'],angzd['iZ'])), shape=(len(self.ang), self.zBins))
+        self.angzd_e2 = csr_matrix((angzd["err2"], (angzd['iAlign'],angzd['iZ'])), shape=(len(self.ang), self.zBins))
 
         self.thetaChunk = ThetaChunker(
             DEGTORAD * comb.getPre("centerDec").data["binCenter"],
@@ -56,6 +57,9 @@ class Chunker(object):
 
         self.zD1 = self.angzd[slice1].astype(self.typeDR)
         self.zD2 = self.angzd[slice2].astype(self.typeDR)
+
+        self.zD1_e2 = self.angzd_e2[slice1].astype(self.typeDR)
+        self.zD2_e2 = self.angzd_e2[slice2].astype(self.typeDR)
 
         self.thetas = self.thetaChunk(slice1, slice2)
         self.iThetas = La.utils.toBins(self.thetas, self.binningTheta, dtype=np.int16)
@@ -122,10 +126,11 @@ class combinatorial(La.routine):
                 yield i1[s1], i2[s2]
         return
 
-    def fguInit(self, typeR, typeD, zBins):
+    def fgueInit(self, typeR, typeD, zBins):
         tBins = self.config.binningTheta()['bins']
         return (np.zeros(tBins, dtype=typeR),
                 csr_matrix((tBins, zBins), dtype=type(typeR()*typeD())),
+                csr_matrix((tBins, zBins*zBins), dtype=typeD),
                 csr_matrix((tBins, zBins*zBins), dtype=typeD))
 
     @staticmethod
@@ -149,29 +154,35 @@ class combinatorial(La.routine):
         iZ1s = np.multiply.outer(iZ1, np.ones(len(iZ2), dtype=iZ2.dtype))
         iZ2s = np.multiply.outer(np.ones(len(iZ1), dtype=iZ1.dtype), iZ2)
         weight = np.multiply.outer(ch.dbl * ch.zD1.data, ch.zD2.data)
+        weight_e2 = np.multiply.outer(ch.dbl * ch.zD1_e2.data, ch.zD2_e2.data)
 
         iZ = np.minimum(iZ1s, iZ2s)
         diZ = np.abs(iZ1s - iZ2s)
-
-        mask = slice(None) if not ch.diZmax else (diZ < ch.diZmax)
-        unbinned = 0 if not ch.diZmax else weight[mask==False].sum()
-
         iZdZs = ch.zBins*iZ + diZ
-        return ( csr_matrix((weight[mask].flat, (iTh[mask].flat, iZdZs[mask].flat)),
-                            shape=shp)
-                 + csr_matrix(([unbinned], ([shp[0]-1], [shp[1]-1])), shape=shp))
+        mask = slice(None) if not ch.diZmax else (diZ < ch.diZmax)
 
-    def fguLoop(self):
+        def calcU(w):
+            unbinned = 0 if not ch.diZmax else w[mask==False].sum()
+            return ( csr_matrix((w[mask].flat, (iTh[mask].flat, iZdZs[mask].flat)),
+                                shape=shp)
+                     + csr_matrix(([unbinned], ([shp[0]-1], [shp[1]-1])), shape=shp))
+
+        return calcU(weight), calcU(weight_e2)
+
+    def fgueLoop(self):
         ch = Chunker(self)
 
         (fTheta,
          gThetaZ,
-         uThetaZZ) = self.fguInit(ch.typeR, ch.typeD, ch.zBins)
+         uThetaZZ,
+         uThetaZZe2) = self.fgueInit(ch.typeR, ch.typeD, ch.zBins)
 
         for chunk in self.chunks(len(ch.ang)):
             ch.set(*chunk)
             fTheta += self.ft(ch)
-            uThetaZZ += self.utzz(ch, uThetaZZ.shape)
+            dU, dUe2 = self.utzz(ch, uThetaZZ.shape)
+            uThetaZZ += dU
+            uThetaZZe2 += dUe2
             gThetaZ += self.gtz(ch.iThetas, ch.countR1, ch.zD2, gThetaZ.shape)
             if not ch.ii:
                 gThetaZ += self.gtz(ch.iThetas.T, ch.countR2, ch.zD1, gThetaZ.shape)
@@ -180,22 +191,24 @@ class combinatorial(La.routine):
         if self.iJob is None:
             fTheta /= 2
             uThetaZZ /= 2
+            uThetaZZe2 /= 2
 
-        return (fTheta, gThetaZ, uThetaZZ)
+        return (fTheta, gThetaZ, uThetaZZ, uThetaZZe2)
 
     @timedHDU
-    def fguHDU(self, fgu=None):
-        fTheta, gThetaZ, uThetaZZ = fgu if fgu else self.fguLoop()
+    def fguHDU(self, fgue=None):
+        fTheta, gThetaZ, uThetaZZ, uThetaZZe2 = fgue if fgue else self.fgueLoop()
 
         fThetaRec = np.array(fTheta, dtype = [('count',fTheta.dtype)])
         iTheta, iZdZ = uThetaZZ.nonzero()
         c1 = fits.Column(name='binTheta', array = iTheta.astype(np.int16), format='I')
         c2 = fits.Column(name='binZdZ', array = iZdZ, format='J')
         c3 = fits.Column(name='count', array = uThetaZZ.data.astype(np.float32), format='E')
+        c4 = fits.Column(name='err2', array = uThetaZZe2.data.astype(np.float32), format='E')
 
         return [fits.BinTableHDU(fThetaRec, name="fTheta"),
                 fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"),
-                fits.BinTableHDU.from_columns([c1,c2,c3], name="uThetaZZ")
+                fits.BinTableHDU.from_columns([c1,c2,c3,c4], name="uThetaZZ")
         ]
 
     @property
@@ -213,9 +226,10 @@ class combinatorial(La.routine):
         with fits.open(jobFiles[0]) as h0:
             (fTheta,
              gThetaZ,
-             uThetaZZ) = self.fguInit(h0['fTheta'].data['count'].dtype.type,
-                                      h0['uThetaZZ'].data['count'].dtype.type,
-                                      len(h0['centerZ'].data))
+             uThetaZZ,
+             uThetaZZe2) = self.fgueInit(h0['fTheta'].data['count'].dtype.type,
+                                         h0['uThetaZZ'].data['count'].dtype.type,
+                                         len(h0['centerZ'].data))
             cputime = 0.
 
             for jF in jobFiles:
@@ -228,6 +242,8 @@ class combinatorial(La.routine):
                     u = h['uThetaZZ'].data
                     uThetaZZ += csr_matrix((u['count'], (u['binTheta'],u['binZdZ'])),
                                            shape=uThetaZZ.shape)
+                    uThetaZZe2 += csr_matrix((u['err2'], (u['binTheta'],u['binZdZ'])),
+                                             shape=uThetaZZ.shape)
                     cputime += h['uThetaZZ'].header['cputime']
 
             self.hdus.append(h0["centerTheta"])
@@ -235,6 +251,6 @@ class combinatorial(La.routine):
             self.hdus.append(h0["pdfZ"])
             fTheta /= 2
             uThetaZZ /= 2
-            self.hdus.extend(self.fguHDU((fTheta, gThetaZ, uThetaZZ)))
+            self.hdus.extend(self.fguHDU((fTheta, gThetaZ, uThetaZZ, uThetaZZe2)))
             self.hdus[-1].header['cputime'] = cputime
             self.writeToFile()

@@ -88,19 +88,24 @@ class preprocessing(La.routine):
         binsRA = self.config.binningRA()['bins']
         binsDec = self.config.binningDec()['bins']
 
-        iZ = La.utils.toBins(ctlgD.z, self.config.binningZ())
-        iRA = La.utils.toBins(ctlgD.ra, self.config.binningRA())
-        iDec= La.utils.toBins(ctlgD.dec, self.config.binningDec())
-        iAng = binsDec*iRA  + iDec
+        jZ = La.utils.toBins(ctlgD.z, self.config.binningZ())
+        jRA = La.utils.toBins(ctlgD.ra, self.config.binningRA())
+        jDec= La.utils.toBins(ctlgD.dec, self.config.binningDec())
+        jAng = binsDec*jRA  + jDec
 
-        frq = csr_matrix((ctlgD.weight, (iAng, iZ)), shape=(binsRA*binsDec, binsZ))
+        def calcAngZD(weights):
+            frq = csr_matrix((weights, (jAng, jZ)), shape=(binsRA*binsDec, binsZ))
+            return frq[mask.ravel()]
 
-        angzD = frq[mask.ravel()]
+        angzD = calcAngZD(ctlgD.weight)
+        err2 = calcAngZD(np.square(ctlgD.weight))
+
         iA, iZ = angzD.nonzero()
         hdu2 = fits.BinTableHDU.from_columns([
             fits.Column(name="iAlign", array=iA, format='J'),
             fits.Column(name="iZ", array=iZ, format='I'),
-            fits.Column(name='count', array=angzD.data, format='E')],
+            fits.Column(name='count', array=angzD.data, format='E'),
+            fits.Column(name='err2', array=err2.data, format='E')],
                                              name="angzD")
 
         hdu2.header.add_comment("Sparse 3D histogram (ra, dec, z) of observed galaxies.")
