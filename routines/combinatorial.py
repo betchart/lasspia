@@ -251,6 +251,7 @@ class combinatorial(La.routine):
             self.hdus.append(h0["pdfZ"])
             fTheta /= 2
             uThetaZZ /= 2
+            uThetaZZe2 /= 2
             self.hdus.extend(self.fguHDU((fTheta, gThetaZ, uThetaZZ, uThetaZZe2)))
             self.hdus[-1].header['cputime'] = cputime
             self.writeToFile()
