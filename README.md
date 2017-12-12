@@ -105,6 +105,20 @@ Run the integration.plot() method.
 ./lasspia.py configs/cmassS_coarse.py routines/integration.py --plot
 ```
 
+## Parallel and Batch Processing
+
+The `combinatorial` and `integration` routines respond to the option
+`--nJobs` to break processing into parallelizable units.  Combine with
+the `--nCores` option to specify the number of processes to run
+locally in parallel, or with the `--iJob` option to specify one (or
+several) units to process.  Some batch systems which accept "job
+arrays" use an environment variable to specify the job index, in which
+case it may be convenient to specify `--iJobEnv` rather than `--iJob`.
+After all units have succeeded, their outputs may be combined by
+repeating the `--nJobs` command, absent any of `--nCores`, `--iJob`,
+or `--iJobEnv`.  A minimal Dockerfile is included for use with batch
+systems that run containers.
+
 ## Contributing
 
 Pending
