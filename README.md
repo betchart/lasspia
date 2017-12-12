@@ -64,6 +64,10 @@ View the headers of the output file.
 ```
 ./lasspia.py configs/cmassS_coarse.py routines/preprocessing.py --show
 ```
+Run the preprocessing.plot() method to plot the contents of the output file (PDF output)
+```
+./lasspia.py configs/cmassS_coarse.py routines/preprocessing.py --plot
+```
 
 ### Combinatorial
 Run the combinatorial routine, which takes about half an hour.
@@ -96,11 +100,9 @@ View the headers of the output file.
 ```
 ./lasspia.py configs/cmassS_coarse.py routines/integration.py --show
 ```
-
-### Visualization
-Graph the results
+Run the integration.plot() method.
 ```
-pending
+./lasspia.py configs/cmassS_coarse.py routines/integration.py --plot
 ```
 
 ## Contributing
