@@ -25,11 +25,14 @@ def parseArgs():
     parser.add_argument('--nCores', metavar='nCores', type=int, nargs=1,
                         help='Use nCores in parallel (requires --nJobs).')
 
+    parser.add_argument('--txtToFile', action='store_true',
+                        help='Direct messages to file.')
+
     parser.add_argument('--show', action='store_true',
                         help='Show info and HDU headers of the output file.')
 
-    parser.add_argument('--txtToFile', action='store_true',
-                        help='Direct messages to file.')
+    parser.add_argument('--plot', action='store_true',
+                        help='Run the plot() method of the routine.')
 
     args = parser.parse_args()
     parseEnv(args)
@@ -69,6 +72,7 @@ if __name__ == "__main__":
     if type(kwargs) is dict:
         routine = getInstance(args.routineFile, (config,), kwargs)
         if args.show: routine.showFitsHeaders()
+        elif args.plot: routine.plot()
         elif args.nJobs: routine.combineOutput()
         else: routine()
 

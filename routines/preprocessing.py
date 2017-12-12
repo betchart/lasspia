@@ -113,3 +113,26 @@ class preprocessing(La.routine):
         self.addProvenance(hdu2, self.config.inputFilesObserved())
 
         return [hdu, hdu2]
+
+
+    def plot(self):
+        from matplotlib import pyplot as plt
+
+        with fits.open(self.outputFileName) as hdus:
+            ang = hdus['ANG'].data
+            dc = hdus['centerDec'].data.binCenter
+            ra = hdus['centerRA'].data.binCenter
+
+            shp = len(ra), len(dc)
+            h2d = csr_matrix((ang.countR, (ang.binRA,ang.binDec)), shape=shp)
+
+            ddc = 0.5 * abs(dc[-1]-dc[0])/(len(dc)-1)
+            dra = 0.5 * abs(ra[-1]-ra[0])/(len(ra)-1)
+            ext = (ra[-1]-dra, ra[0]+dra, dc[0]-ddc, dc[-1]+ddc)
+            plt.figure()
+            plt.imshow(np.fliplr(h2d.T.toarray()), origin='lower', extent=ext, interpolation='none', cmap='gray')
+            cb = plt.colorbar()
+            plt.xlabel(r'$\alpha$ [$\degree$]')
+            plt.ylabel(r'$\delta$ [$\degree$]')
+            cb.set_label('random count')
+            plt.show()
