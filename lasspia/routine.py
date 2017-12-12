@@ -63,4 +63,4 @@ class routine(object):
 
     def plot(self):
         '''Defined in subclasses, to be run when lasspia.py receives the --plot flag.'''
-        print 'No plot method defined for %s.' % self.__class__.__name__
+        print 'No plot() method defined for %s.' % self.__class__.__name__

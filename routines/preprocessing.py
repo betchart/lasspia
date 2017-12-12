@@ -117,22 +117,45 @@ class preprocessing(La.routine):
 
     def plot(self):
         from matplotlib import pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        infile = self.outputFileName
 
-        with fits.open(self.outputFileName) as hdus:
-            ang = hdus['ANG'].data
-            dc = hdus['centerDec'].data.binCenter
-            ra = hdus['centerRA'].data.binCenter
+        def angPlot():
+            ang = fits.getdata(infile, 'ANG')
+            dc = fits.getdata(infile, 'centerDec').binCenter
+            ra = fits.getdata(infile, 'centerRA').binCenter
 
             shp = len(ra), len(dc)
-            h2d = csr_matrix((ang.countR, (ang.binRA,ang.binDec)), shape=shp)
+            h2d = csr_matrix((ang.countR, (ang.binRA, ang.binDec)), shape=shp)
 
             ddc = 0.5 * abs(dc[-1]-dc[0])/(len(dc)-1)
             dra = 0.5 * abs(ra[-1]-ra[0])/(len(ra)-1)
             ext = (ra[-1]-dra, ra[0]+dra, dc[0]-ddc, dc[-1]+ddc)
+
             plt.figure()
             plt.imshow(np.fliplr(h2d.T.toarray()), origin='lower', extent=ext, interpolation='none', cmap='gray')
-            cb = plt.colorbar()
+            plt.colorbar().set_label('random count')
             plt.xlabel(r'$\alpha$ [$\degree$]')
             plt.ylabel(r'$\delta$ [$\degree$]')
-            cb.set_label('random count')
-            plt.show()
+
+        def zPlot():
+            P = fits.getdata(infile, 'pdfz').probability
+            z = fits.getdata(infile, 'centerz').binCenter
+            dz = z[1]-z[0]
+
+            plt.figure()
+            plt.bar(z, P, dz)
+            plt.xlabel('redshift')
+            plt.ylabel('probability')
+
+        with PdfPages(infile.replace('fits','pdf')) as pdf:
+
+            angPlot()
+            pdf.savefig()
+            plt.close()
+
+            zPlot()
+            pdf.savefig()
+            plt.close()
+            print 'Wrote %s'% pdf._file.fh.name
+        return
