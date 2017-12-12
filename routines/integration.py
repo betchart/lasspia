@@ -137,3 +137,46 @@ class integration(La.routine):
             self.hdus.append(hdu)
             self.writeToFile()
         return
+
+    def plot(self):
+        from matplotlib import pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        infile = self.outputFileName
+
+        tpcf = fits.getdata(infile, 'TPCF')
+
+        def tpcfPlot(pdf, binFactor):
+            iStop = len(tpcf.s)/binFactor
+            plt.figure()
+            plt.title(self.config.__class__.__name__)
+            plt.step(tpcf.s[:iStop], tpcf.RR[:iStop], where='mid', label='RR', linewidth=0.4)
+            plt.step(tpcf.s[:iStop], tpcf.DR[:iStop], where='mid', label='DR', linewidth=0.4)
+            plt.step(tpcf.s[:iStop], tpcf.DD[:iStop], where='mid', label='DD', linewidth=0.4)
+            plt.legend()
+            plt.xlabel('s')
+            plt.ylabel('probability')
+            pdf.savefig()
+            plt.close()
+
+        def xsissPlot(pdf, sMax):
+            iStop = next(iter(np.where(tpcf.s >= sMax)[0]))
+            s = tpcf.s[:iStop]
+            xi = (tpcf.RR[:iStop] + tpcf.DD[:iStop] - 2*tpcf.DR[:iStop])/tpcf.RR[:iStop]
+            xie = np.sqrt(tpcf.DDe2[:iStop]) / tpcf.RR[:iStop]
+            ds = s[1]-s[0]
+
+            plt.figure()
+            plt.title(self.config.__class__.__name__)
+            plt.errorbar(s, (xi*s*s), yerr=(xie*s*s), xerr=ds/2, fmt='.')
+            plt.xlabel(r"$\mathrm{s\ [h^{-1} Mpc]}$")
+            plt.ylabel(r"$\mathrm{\xi(s)s^2}$")
+            plt.grid()
+            pdf.savefig()
+            plt.close()
+
+        with PdfPages(infile.replace('fits','pdf')) as pdf:
+            for i in range(5):
+                tpcfPlot(pdf, 2**i)
+            xsissPlot(pdf, 200)
+            print 'Wrote %s'% pdf._file.fh.name
+        return

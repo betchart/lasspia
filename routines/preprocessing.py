@@ -120,7 +120,7 @@ class preprocessing(La.routine):
         from matplotlib.backends.backend_pdf import PdfPages
         infile = self.outputFileName
 
-        def angPlot():
+        def angPlot(pdf):
             ang = fits.getdata(infile, 'ANG')
             dc = fits.getdata(infile, 'centerDec').binCenter
             ra = fits.getdata(infile, 'centerRA').binCenter
@@ -133,29 +133,29 @@ class preprocessing(La.routine):
             ext = (ra[-1]-dra, ra[0]+dra, dc[0]-ddc, dc[-1]+ddc)
 
             plt.figure()
+            plt.title(self.config.__class__.__name__)
             plt.imshow(np.fliplr(h2d.T.toarray()), origin='lower', extent=ext, interpolation='none', cmap='gray')
             plt.colorbar().set_label('random count')
             plt.xlabel(r'$\alpha$ [$\degree$]')
             plt.ylabel(r'$\delta$ [$\degree$]')
+            pdf.savefig()
+            plt.close()
 
-        def zPlot():
+        def zPlot(pdf):
             P = fits.getdata(infile, 'pdfz').probability
             z = fits.getdata(infile, 'centerz').binCenter
             dz = z[1]-z[0]
 
             plt.figure()
-            plt.bar(z, P, dz)
+            plt.title(self.config.__class__.__name__)
+            plt.bar(z, P, dz, color='blue', edgecolor='blue')
             plt.xlabel('redshift')
             plt.ylabel('probability')
+            pdf.savefig()
+            plt.close()
 
         with PdfPages(infile.replace('fits','pdf')) as pdf:
-
-            angPlot()
-            pdf.savefig()
-            plt.close()
-
-            zPlot()
-            pdf.savefig()
-            plt.close()
+            angPlot(pdf)
+            zPlot(pdf)
             print 'Wrote %s'% pdf._file.fh.name
         return
