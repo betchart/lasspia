@@ -158,7 +158,7 @@ class integration(La.routine):
             pdf.savefig()
             plt.close()
 
-        def xsissPlot(pdf, sMax):
+        def xissPlot(pdf, sMax):
             iStop = next(iter(np.where(tpcf.s >= sMax)[0]))
             s = tpcf.s[:iStop]
             xi = (tpcf.RR[:iStop] + tpcf.DD[:iStop] - 2*tpcf.DR[:iStop])/tpcf.RR[:iStop]
@@ -177,6 +177,6 @@ class integration(La.routine):
         with PdfPages(infile.replace('fits','pdf')) as pdf:
             for i in range(5):
                 tpcfPlot(pdf, 2**i)
-            xsissPlot(pdf, 200)
+            xissPlot(pdf, 200)
             print 'Wrote %s'% pdf._file.fh.name
         return
