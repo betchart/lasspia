@@ -44,7 +44,7 @@ Test your installation by running the 'quickscan.py' routine.
 
 ## A Complete Example
 
-We can quickly find the two-point correlation function xsi for
+We can quickly find the two-point correlation function xi for
 galaxies in the DR9 survey of the souther sky using the included
 configuration `configs/cmassS_coarse.py`.  This configuration differs
 from `configs/cmassS.py` by using fewer bins and not employing any
