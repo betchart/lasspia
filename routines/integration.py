@@ -31,9 +31,9 @@ class integration(La.routine):
             fits.Column(name='DDe2', array=self.calcDD(s, slcT, 'err2'), format='D')],
                                             name="TPCF")
         if self.iJob is None:
-            hdu['DDe2'] /= sum(hdu['DD'])**2
+            hdu.data['DDe2'] /= sum(hdu.data['DD'])**2
             for k in ['DD','DR','RR']:
-                hdu[k] /= sum(hdu[k])
+                hdu.data[k] /= sum(hdu.data[k])
 
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
