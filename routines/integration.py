@@ -32,7 +32,8 @@ class integration(La.routine):
                                             name="TPCF")
         if self.iJob is None:
             hdu['DDe2'] /= sum(hdu['DD'])**2
-            hdu['DD'] /= sum(hdu['DD'])
+            for k in ['DD','DR','RR']:
+                hdu[k] /= sum(hdu[k])
 
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
@@ -57,8 +58,6 @@ class integration(La.routine):
         ft = self.getInput('fTheta').data['count'][slcT]
         counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:]
         rr = np.histogram(s, weights=counts, **self.config.binningS())[0]
-        if self.iJob is None:
-            rr /= sum(rr)
         del counts
         return rr
 
@@ -66,8 +65,6 @@ class integration(La.routine):
         gtz = self.getInput('gThetaZ').data
         counts = gtz[slcT,:,None] * self.pdfz[None,None,:]
         dr = np.histogram(s, weights=counts, **self.config.binningS())[0]
-        if self.iJob is None:
-            dr /= sum(dr)
         del counts
         return dr
 
