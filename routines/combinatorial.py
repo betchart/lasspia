@@ -85,7 +85,8 @@ class combinatorial(La.routine):
     def chunks(self, size):
         if any([self.config.maxDeltaRA(),
                 self.config.maxDeltaDec()]):
-            return self.__indexChunks__(size)
+            #return self.__indexChunks__(size)
+            return self.__orderedChunks__()
         return self.__sliceChunks__(size)
 
     def __sliceChunks__(self, size):
@@ -93,6 +94,30 @@ class combinatorial(La.routine):
         return [(slices[i],jSlice)
                 for i in range(len(slices))
                 for jSlice in slices[i:]][self.iJob::self.nJobs]
+
+    def __orderedChunks__(self):
+        ang = self.getPre('ang').data
+        sp =  self.getPre('slicePoints').data['bin']
+        def sliceMnMx(z):
+            slc = slice(*z)
+            mnRA = min(ang['binRA'][slc])
+            mxRA = max(ang['binRA'][slc])
+            mnD = min(ang['binDec'][slc])
+            mxD = max(ang['binDec'][slc])
+            return slc, mnRA, mxRA, mnD, mxD
+
+        def inRange((iS,imnRA,imxRA,imnD,imxD),
+                    (jS,jmnRA,jmxRA,jmnD,jmxD)):
+            iDeltaRA = La.utils.invBinWidth(self.config.binningRA()) * self.config.maxDeltaRA()
+            iDeltaDec = La.utils.invBinWidth(self.config.binningDec()) * self.config.maxDeltaDec()
+            return (max(imnRA,jmnRA) - min(imxRA,jmxRA) < iDeltaRA and
+                    max(imnD,jmnD) - min(imxD,jmxD) < iDeltaDec)
+
+        slices = [(sliceMnMx(z)) for z in zip(sp,sp[1:])]
+        return [(iSlcMnMx[0], jSlcMnMx[0])
+                for i,iSlcMnMx in enumerate(slices)
+                for jSlcMnMx in slices[i:]
+                if inRange(iSlcMnMx,jSlcMnMx)][self.iJob::self.nJobs]
 
     def __indexChunks__(self, size):
         ang = self.getPre('ang').data
