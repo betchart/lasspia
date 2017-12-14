@@ -85,7 +85,6 @@ class combinatorial(La.routine):
     def chunks(self, size):
         if any([self.config.maxDeltaRA(),
                 self.config.maxDeltaDec()]):
-            #return self.__indexChunks__(size)
             return self.__orderedChunks__()
         return self.__sliceChunks__(size)
 
@@ -98,12 +97,11 @@ class combinatorial(La.routine):
     def __orderedChunks__(self):
         ang = self.getPre('ang').data
         sp =  self.getPre('slicePoints').data['bin']
+
         def sliceMnMx(z):
             slc = slice(*z)
-            mnRA = min(ang['binRA'][slc])
-            mxRA = max(ang['binRA'][slc])
-            mnD = min(ang['binDec'][slc])
-            mxD = max(ang['binDec'][slc])
+            mnRA,mxRA = min(ang['binRA'][slc]), max(ang['binRA'][slc])
+            mnD, mxD = min(ang['binDec'][slc]), max(ang['binDec'][slc])
             return slc, mnRA, mxRA, mnD, mxD
 
         def inRange((iS,imnRA,imxRA,imnD,imxD),
@@ -118,38 +116,6 @@ class combinatorial(La.routine):
                 for i,iSlcMnMx in enumerate(slices)
                 for jSlcMnMx in slices[i:]
                 if inRange(iSlcMnMx,jSlcMnMx)][self.iJob::self.nJobs]
-
-    def __indexChunks__(self, size):
-        ang = self.getPre('ang').data
-        def regionIndices(ra,dc):
-            mask = reduce(np.logical_and, [ra.start <= ang['binRA'],
-                                           ang['binRA'] < ra.stop,
-                                           dc.start <= ang['binDec'],
-                                           ang['binDec'] < dc.stop],
-                          0 <= ang['binDec'])
-            return mask.nonzero()[0]
-
-        regions = [[(i,j) for i in self.config.binRegionsRA()]
-                   for j in self.config.binRegionsDec()]
-
-        rpairs = sum([
-            [(r,r) for row in regions for r in row],                                             # self
-            [(r1,r2) for row in regions for r1,r2 in zip(row,row[1:])],                          # right
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2)],     # below
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2[1:])], # below right
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1[1:],row2)], # below left
-            ], [])
-        cz = self.config.chunkSize()
-        for r1,r2 in rpairs:
-            i1 = regionIndices(*r1)
-            i2 = regionIndices(*r2)
-            schnks = ( self.__sliceChunks__(len(i1)) if r1==r2 else
-                       [(s1,s2)
-                        for s1 in La.utils.slices(len(i1),cz)
-                        for s2 in La.utils.slices(len(i2),cz)][self.iJob::self.nJobs])
-            for s1,s2 in schnks:
-                yield i1[s1], i2[s2]
-        return
 
     def fgueInit(self, typeR, typeD, zBins):
         tBins = self.config.binningTheta()['bins']
