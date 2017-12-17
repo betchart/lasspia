@@ -68,8 +68,8 @@ class preprocessing(La.routine):
         angD = np.histogram2d(ctlgD.ra, ctlgD.dec, weights=ctlgD.weight,
                               **binning2D)[0]
 
-        slicePoints, iXs, iYs = La.utils.chunksWhere(np.logical_or(angR>0, angD>0),
-                                                     1.3*self.config.chunkSize())
+        slicePoints, iXs, iYs = La.slicing.xyClustersWhere(np.logical_or(angR>0, angD>0),
+                                                           1.3*self.config.chunkSize())
 
         hduSlc = fits.BinTableHDU(np.array( slicePoints,
                                             dtype = [("bin", np.int64)])
