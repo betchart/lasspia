@@ -94,6 +94,38 @@ class combinatorial(La.routine):
                 for i in range(len(slices))
                 for jSlice in slices[i:]][self.iJob::self.nJobs]
 
+    def __indexChunks__(self, size):
+        ang = self.getPre('ang').data
+        def regionIndices(ra,dc):
+            mask = reduce(np.logical_and, [ra.start <= ang['binRA'],
+                                           ang['binRA'] < ra.stop,
+                                           dc.start <= ang['binDec'],
+                                           ang['binDec'] < dc.stop],
+                          0 <= ang['binDec'])
+            return mask.nonzero()[0]
+
+        regions = [[(i,j) for i in self.config.binRegionsRA()]
+                   for j in self.config.binRegionsDec()]
+
+        rpairs = sum([
+            [(r,r) for row in regions for r in row],                                             # self
+            [(r1,r2) for row in regions for r1,r2 in zip(row,row[1:])],                          # right
+            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2)],     # below
+            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2[1:])], # below right
+            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1[1:],row2)], # below left
+            ], [])
+        cz = self.config.chunkSize()
+        for r1,r2 in rpairs:
+            i1 = regionIndices(*r1)
+            i2 = regionIndices(*r2)
+            schnks = ( self.__sliceChunks__(len(i1)) if r1==r2 else
+                       [(s1,s2)
+                        for s1 in La.utils.slices(len(i1),cz)
+                        for s2 in La.utils.slices(len(i2),cz)][self.iJob::self.nJobs])
+            for s1,s2 in schnks:
+                yield i1[s1], i2[s2]
+        return
+
     def __orderedChunks__(self):
         ang = self.getPre('ang').data
         sp =  self.getPre('slicePoints').data['bin']
