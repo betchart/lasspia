@@ -85,6 +85,8 @@ class combinatorial(La.routine):
     def chunks(self, size):
         if any([self.config.maxDeltaRA(),
                 self.config.maxDeltaDec()]):
+            if self.config.regionBasedCombinations():
+                return self.__indexChunks__(size)
             return self.__orderedChunks__()
         return self.__sliceChunks__(size)
 

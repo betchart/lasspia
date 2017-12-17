@@ -27,6 +27,7 @@ class configuration(object):
     def maxDeltaRA(self): return None
     def maxDeltaDec(self): return None
     def maxDeltaZ(self): return None
+    def regionBasedCombinations(self): return False
 
     def binRegionsRA(self):
         return utils.binRegions(self.maxDeltaRA(), self.binningRA())
