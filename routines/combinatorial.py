@@ -91,7 +91,7 @@ class combinatorial(La.routine):
         return self.__sliceChunks__(size)
 
     def __sliceChunks__(self, size):
-        slices = La.utils.slices(size, self.config.chunkSize())
+        slices = La.slicing.slices(size, self.config.chunkSize())
         return [(slices[i],jSlice)
                 for i in range(len(slices))
                 for jSlice in slices[i:]][self.iJob::self.nJobs]
@@ -122,8 +122,8 @@ class combinatorial(La.routine):
             i2 = regionIndices(*r2)
             schnks = ( self.__sliceChunks__(len(i1)) if r1==r2 else
                        [(s1,s2)
-                        for s1 in La.utils.slices(len(i1),cz)
-                        for s2 in La.utils.slices(len(i2),cz)][self.iJob::self.nJobs])
+                        for s1 in La.slicing.slices(len(i1),cz)
+                        for s2 in La.slicing.slices(len(i2),cz)][self.iJob::self.nJobs])
             for s1,s2 in schnks:
                 yield i1[s1], i2[s2]
         return

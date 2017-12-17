@@ -16,16 +16,6 @@ def invBinWidth(binning):
 def toBins(ary, binning, dtype=np.int32):
     return ((ary-binning['range'][0]) * invBinWidth(binning)).astype(dtype)
 
-def binRegions(delta, binning):
-    '''List of slices breaking binning["range"] into regions of delta.'''
-    iDelta = int(delta * invBinWidth(binning))
-    return slices(binning['bins'], iDelta)
-
-def slices(size, step=None, N=None):
-    step = step or int(math.ceil(size/N))
-    splits = range(0, size, step if step else size)
-    return [slice(i,j) for i,j in zip(splits,splits[1:]+[size])]
-
 
 def callInParallel(nCores, itemsToCall):
     if len(itemsToCall)==1: return itemsToCall[0]()

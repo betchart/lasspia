@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import utils
+import slicing
 
 class configuration(object):
 
@@ -30,10 +31,10 @@ class configuration(object):
     def regionBasedCombinations(self): return False
 
     def binRegionsRA(self):
-        return utils.binRegions(self.maxDeltaRA(), self.binningRA())
+        return slicing.binRegions(self.maxDeltaRA(), self.binningRA())
 
     def binRegionsDec(self):
-        return utils.binRegions(self.maxDeltaDec(), self.binningDec())
+        return slicing.binRegions(self.maxDeltaDec(), self.binningDec())
 
     def edgesZ(self): return self.edgesFromBinning(self.binningZ())
     def edgesRA(self): return self.edgesFromBinning(self.binningRA())

@@ -1,4 +1,5 @@
 import numpy as np
+import utils
 
 def xyClustersWhere(mask, limit):
     cc = groupedPoints(*np.where(mask), limit=limit)
@@ -23,3 +24,14 @@ def indicesCat(iXYs):
     lens = map(len,iXs)
     assert lens == map(len,iYs)
     return np.cumsum([0]+lens), np.hstack(iXs), np.hstack(iYs)
+
+
+def binRegions(delta, binning):
+    '''List of slices breaking binning["range"] into regions of delta.'''
+    iDelta = int(delta * utils.invBinWidth(binning))
+    return slices(binning['bins'], iDelta)
+
+def slices(size, step=None, N=None):
+    step = step or int(math.ceil(size/N))
+    splits = range(0, size, step if step else size)
+    return [slice(i,j) for i,j in zip(splits,splits[1:]+[size])]
