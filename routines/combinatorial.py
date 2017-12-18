@@ -82,74 +82,26 @@ class combinatorial(La.routine):
                             dtype = [("binCenter", np.float64)])
         return fits.BinTableHDU(centers, name="centerTheta")
 
-    def chunks(self, size):
-        if any([self.config.maxDeltaRA(),
-                self.config.maxDeltaDec()]):
-            if self.config.regionBasedCombinations():
-                return self.__indexChunks__(size)
-            return self.__orderedChunks__()
-        return self.__sliceChunks__(size)
-
-    def __sliceChunks__(self, size):
-        slices = La.slicing.slices(size, self.config.chunkSize())
-        return [(slices[i],jSlice)
-                for i in range(len(slices))
-                for jSlice in slices[i:]][self.iJob::self.nJobs]
-
-    def __indexChunks__(self, size):
+    def chunks(self):
         ang = self.getPre('ang').data
-        def regionIndices(ra,dc):
-            mask = reduce(np.logical_and, [ra.start <= ang['binRA'],
-                                           ang['binRA'] < ra.stop,
-                                           dc.start <= ang['binDec'],
-                                           ang['binDec'] < dc.stop],
-                          0 <= ang['binDec'])
-            return mask.nonzero()[0]
+        sp = self.getPre('slicePoints').data['bin']
+        dRA = self.config.maxDeltaRA()
+        dDC = self.config.maxDeltaDec()
 
-        regions = [[(i,j) for i in self.config.binRegionsRA()]
-                   for j in self.config.binRegionsDec()]
+        if any([dRA,dDC]) and self.config.regionBasedCombinations():
+            args = (ang['binRA'], ang['binDec'],
+                    La.slicing.binRegions(dRA, self.config.binningRA()),
+                    La.slicing.binRegions(dDC, self.config.binningDec()),
+                    self.config.chunkSize())
+            return La.chunking.byRegions(*args)
 
-        rpairs = sum([
-            [(r,r) for row in regions for r in row],                                             # self
-            [(r1,r2) for row in regions for r1,r2 in zip(row,row[1:])],                          # right
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2)],     # below
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2[1:])], # below right
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1[1:],row2)], # below left
-            ], [])
-        cz = self.config.chunkSize()
-        for r1,r2 in rpairs:
-            i1 = regionIndices(*r1)
-            i2 = regionIndices(*r2)
-            schnks = ( self.__sliceChunks__(len(i1)) if r1==r2 else
-                       [(s1,s2)
-                        for s1 in La.slicing.slices(len(i1),cz)
-                        for s2 in La.slicing.slices(len(i2),cz)][self.iJob::self.nJobs])
-            for s1,s2 in schnks:
-                yield i1[s1], i2[s2]
-        return
+        if any([dRA,dDC]):
+            args = (sp, ang['binRA'], ang['binDec'],
+                    dRA * La.utils.invBinWidth(self.config.binningRA()),
+                    dDC * La.utils.invBinWidth(self.config.binningDec()))
+            return La.chunking.fromProximateSlices(*args)
 
-    def __orderedChunks__(self):
-        ang = self.getPre('ang').data
-        sp =  self.getPre('slicePoints').data['bin']
-
-        def sliceMnMx(z):
-            slc = slice(*z)
-            mnRA,mxRA = min(ang['binRA'][slc]), max(ang['binRA'][slc])
-            mnD, mxD = min(ang['binDec'][slc]), max(ang['binDec'][slc])
-            return slc, mnRA, mxRA, mnD, mxD
-
-        def inRange((iS,imnRA,imxRA,imnD,imxD),
-                    (jS,jmnRA,jmxRA,jmnD,jmxD)):
-            iDeltaRA = La.utils.invBinWidth(self.config.binningRA()) * self.config.maxDeltaRA()
-            iDeltaDec = La.utils.invBinWidth(self.config.binningDec()) * self.config.maxDeltaDec()
-            return (max(imnRA,jmnRA) - min(imxRA,jmxRA) < iDeltaRA and
-                    max(imnD,jmnD) - min(imxD,jmxD) < iDeltaDec)
-
-        slices = [(sliceMnMx(z)) for z in zip(sp,sp[1:])]
-        return [(iSlcMnMx[0], jSlcMnMx[0])
-                for i,iSlcMnMx in enumerate(slices)
-                for jSlcMnMx in slices[i:]
-                if inRange(iSlcMnMx,jSlcMnMx)][self.iJob::self.nJobs]
+        return La.chunking.fromAllSlices(len(ang), self.config.chunkSize())
 
     def fgueInit(self, typeR, typeD, zBins):
         tBins = self.config.binningTheta()['bins']
@@ -202,7 +154,7 @@ class combinatorial(La.routine):
          uThetaZZ,
          uThetaZZe2) = self.fgueInit(ch.typeR, ch.typeD, ch.zBins)
 
-        for chunk in self.chunks(len(ch.ang)):
+        for chunk in self.chunks()[self.iJob::self.nJobs]:
             ch.set(*chunk)
             fTheta += self.ft(ch)
             dU, dUe2 = self.utzz(ch, uThetaZZ.shape)

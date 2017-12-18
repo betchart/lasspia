@@ -30,12 +30,6 @@ class configuration(object):
     def maxDeltaZ(self): return None
     def regionBasedCombinations(self): return False
 
-    def binRegionsRA(self):
-        return slicing.binRegions(self.maxDeltaRA(), self.binningRA())
-
-    def binRegionsDec(self):
-        return slicing.binRegions(self.maxDeltaDec(), self.binningDec())
-
     def edgesZ(self): return self.edgesFromBinning(self.binningZ())
     def edgesRA(self): return self.edgesFromBinning(self.binningRA())
     def edgesDec(self): return self.edgesFromBinning(self.binningDec())
