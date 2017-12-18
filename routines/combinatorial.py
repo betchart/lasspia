@@ -74,6 +74,7 @@ class combinatorial(La.routine):
         self.hdus.append( self.getPre('centerZ'))
         self.hdus.append( self.getPre('pdfZ'))
         self.hdus.extend( self.fguHDU() )
+        self.addNormalizations()
         self.writeToFile()
 
     @timedHDU
@@ -188,6 +189,19 @@ class combinatorial(La.routine):
                 fits.BinTableHDU.from_columns([c1,c2,c3,c4], name="uThetaZZ")
         ]
 
+    def normalizations(self):
+        ang = self.getPre('ANG').data
+        sumR = sum(ang['countR'])
+        sumD = sum(ang['countD'])
+        return zip(['ftheta','gthetaz','uthetazz'],
+                   [0.5*sumR**2, sumR*sumD, 0.5*sumD**2])
+
+    def addNormalizations(self):
+        for hdu, (name,N) in zip(self.hdus[-3:], self.normalizations()):
+            assert hdu.header['extname'] == name.upper()
+            hdu.header['NORM'] = N
+        return
+
     @property
     def inputFileName(self):
         return self.config.stageFileName('preprocessing')
@@ -231,4 +245,5 @@ class combinatorial(La.routine):
             uThetaZZe2 /= 2
             self.hdus.extend(self.fguHDU((fTheta, gThetaZ, uThetaZZ, uThetaZZe2)))
             self.hdus[-1].header['cputime'] = cputime
+            self.addNormalizations()
             self.writeToFile()
