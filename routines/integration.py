@@ -30,10 +30,10 @@ class integration(La.routine):
             fits.Column(name='DD', array=self.calcDD(s, slcT, 'count'), format='D'),
             fits.Column(name='DDe2', array=self.calcDD(s, slcT, 'err2'), format='D')],
                                             name="TPCF")
-        if self.iJob is None:
-            hdu.data['DDe2'] /= sum(hdu.data['DD'])**2
-            for k in ['DD','DR','RR']:
-                hdu.data[k] /= sum(hdu.data[k])
+
+        hdu.header['NORMRR'] = self.getInput('fTheta').header['NORM']
+        hdu.header['NORMDR'] = self.getInput('gThetaZ').header['NORM']
+        hdu.header['NORMDD'] = self.getInput('uThetaZZ').header['NORM']
 
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
@@ -127,9 +127,6 @@ class integration(La.routine):
                     cputime += jfh['TPCF'].header['cputime']
                     for col in ['RR','DR','DD','DDe2']:
                         hdu.data[col] += jfh['TPCF'].data[col]
-            hdu.data['DDe2'] /= sum(hdu.data['DD'])**2
-            for col in ['RR','DR','DD']:
-                hdu.data[col] /= sum(hdu.data[col])
             hdu.header['cputime'] = cputime
             self.hdus.append(hdu)
             self.writeToFile()
@@ -141,14 +138,18 @@ class integration(La.routine):
         infile = self.outputFileName
 
         tpcf = fits.getdata(infile, 'TPCF')
+        nRR,nDR,nDD = (lambda h:
+                       (h['normrr'],
+                        h['normdr'],
+                        h['normdd']))(fits.getheader(infile, 'TPCF'))
 
         def tpcfPlot(pdf, binFactor):
             iStop = len(tpcf.s)/binFactor
             plt.figure()
             plt.title(self.config.__class__.__name__)
-            plt.step(tpcf.s[:iStop], tpcf.RR[:iStop], where='mid', label='RR', linewidth=0.4)
-            plt.step(tpcf.s[:iStop], tpcf.DR[:iStop], where='mid', label='DR', linewidth=0.4)
-            plt.step(tpcf.s[:iStop], tpcf.DD[:iStop], where='mid', label='DD', linewidth=0.4)
+            plt.step(tpcf.s[:iStop], tpcf.RR[:iStop]/nRR, where='mid', label='RR', linewidth=0.4)
+            plt.step(tpcf.s[:iStop], tpcf.DR[:iStop]/nDR, where='mid', label='DR', linewidth=0.4)
+            plt.step(tpcf.s[:iStop], tpcf.DD[:iStop]/nDD, where='mid', label='DD', linewidth=0.4)
             plt.legend()
             plt.xlabel('s')
             plt.ylabel('probability')
@@ -158,8 +159,10 @@ class integration(La.routine):
         def xissPlot(pdf, sMax):
             iStop = next(iter(np.where(tpcf.s >= sMax)[0]))
             s = tpcf.s[:iStop]
-            xi = (tpcf.RR[:iStop] + tpcf.DD[:iStop] - 2*tpcf.DR[:iStop])/tpcf.RR[:iStop]
-            xie = np.sqrt(tpcf.DDe2[:iStop]) / tpcf.RR[:iStop]
+            xi = ( (tpcf.RR[:iStop]/nRR + tpcf.DD[:iStop]/nDD - 2*tpcf.DR[:iStop]/nDR)
+                   / (tpcf.RR[:iStop]/nRR) )
+            xie = ( (np.sqrt(tpcf.DDe2[:iStop])/nDD)
+                    / (tpcf.RR[:iStop]/nRR) )
             ds = s[1]-s[0]
 
             plt.figure()
