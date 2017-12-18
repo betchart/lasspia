@@ -9,6 +9,7 @@ class routine(object):
         self.nJobs = nJobs
         self.iJob = iJob
         self.hdus = [fits.PrimaryHDU()]
+        self.hdus[0].header['cmd'] = ' '.join(sys.argv)
         self.streamFile = (None if not config.txtToFile else
                            self.outputFileName.replace('fits','txt'))
         if self.streamFile and os.path.exists(self.streamFile):
@@ -47,7 +48,7 @@ class routine(object):
 
         with fits.open(self.outputFileName) as hdus:
             hdus.info(self.out)
-            for h in hdus[1:]:
+            for h in hdus:
                 print>>self.out
                 print>>self.out, repr(h.header)
             print>>self.out
