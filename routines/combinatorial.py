@@ -84,24 +84,24 @@ class combinatorial(La.routine):
 
     def chunks(self):
         ang = self.getPre('ang').data
-        sp = self.getPre('slicePoints').data['bin']
         dRA = self.config.maxDeltaRA()
         dDC = self.config.maxDeltaDec()
 
-        if any([dRA,dDC]) and self.config.regionBasedCombinations():
+        if not any([dRA,dDC]):
+            return La.chunking.fromAllSlices(len(ang), self.config.chunkSize())
+
+        if self.config.regionBasedCombinations():
             args = (ang['binRA'], ang['binDec'],
                     La.slicing.binRegions(dRA, self.config.binningRA()),
                     La.slicing.binRegions(dDC, self.config.binningDec()),
                     self.config.chunkSize())
             return La.chunking.byRegions(*args)
 
-        if any([dRA,dDC]):
-            args = (sp, ang['binRA'], ang['binDec'],
-                    dRA * La.utils.invBinWidth(self.config.binningRA()),
-                    dDC * La.utils.invBinWidth(self.config.binningDec()))
-            return La.chunking.fromProximateSlices(*args)
-
-        return La.chunking.fromAllSlices(len(ang), self.config.chunkSize())
+        args = (self.getPre('slicePoints').data['bin'],
+                ang['binRA'], ang['binDec'],
+                dRA * La.utils.invBinWidth(self.config.binningRA()),
+                dDC * La.utils.invBinWidth(self.config.binningDec()))
+        return La.chunking.fromProximateSlices(*args)
 
     def fgueInit(self, typeR, typeD, zBins):
         tBins = self.config.binningTheta()['bins']
