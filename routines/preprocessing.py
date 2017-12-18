@@ -62,25 +62,28 @@ class preprocessing(La.routine):
         binning2D = self.config.binningDD([self.config.binningRA(),
                                            self.config.binningDec()])
 
-        angR, xedges, yedges = np.histogram2d(ctlgR.ra, ctlgR.dec, weights=ctlgR.weightNoZ,
-                                              **binning2D)
+        angR = np.histogram2d(ctlgR.ra, ctlgR.dec, weights=ctlgR.weightNoZ,
+                              **binning2D)[0]
 
-        angD, xedges, yedges = np.histogram2d(ctlgD.ra, ctlgD.dec, weights=ctlgD.weight,
-                                              **binning2D)
+        angD = np.histogram2d(ctlgD.ra, ctlgD.dec, weights=ctlgD.weight,
+                              **binning2D)[0]
 
-        xx, yy = np.meshgrid(range(len(xedges)-1), range(len(yedges)-1), indexing='ij')
+        slicePoints, iXs, iYs = La.slicing.xyClustersWhere(np.logical_or(angR>0, angD>0),
+                                                           1.3*self.config.chunkSize())
 
+        hduSlc = fits.BinTableHDU(np.array( slicePoints,
+                                            dtype = [("bin", np.int64)])
+                                  , name="slicePoints")
 
-        mask = np.logical_or(angR>0, angD>0)
-        hdu = fits.BinTableHDU.from_columns([
-            fits.Column(name="binRA", array=xx[mask], format='I'),
-            fits.Column(name="binDec",array=yy[mask], format='I'),
-            fits.Column(name="countR",array=angR[mask], format='I'),
-            fits.Column(name="countD",array=angD[mask], format='E')],
+        hduAng = fits.BinTableHDU.from_columns([
+            fits.Column(name="binRA", array=iXs, format='I'),
+            fits.Column(name="binDec",array=iYs, format='I'),
+            fits.Column(name="countR",array=angR[iXs,iYs], format='I'),
+            fits.Column(name="countD",array=angD[iXs,iYs], format='E')],
                                             name="ang")
-        hdu.header.add_comment("Unraveled angular (ra,dec) 2D histogram.")
-        hdu.header.add_comment("Histogram for random catalog filled with z independent weights.")
-        self.addProvenance(hdu,
+        hduAng.header.add_comment("Unraveled angular (ra,dec) 2D histogram.")
+        hduAng.header.add_comment("Histogram for random catalog filled with z independent weights.")
+        self.addProvenance(hduAng,
                            self.config.inputFilesRandom() +
                            self.config.inputFilesObserved())
 
@@ -92,27 +95,28 @@ class preprocessing(La.routine):
         jRA = La.utils.toBins(ctlgD.ra, self.config.binningRA())
         jDec= La.utils.toBins(ctlgD.dec, self.config.binningDec())
         jAng = binsDec*jRA  + jDec
+        iRavelXY = binsDec*iXs + iYs
 
         def calcAngZD(weights):
             frq = csr_matrix((weights, (jAng, jZ)), shape=(binsRA*binsDec, binsZ))
-            return frq[mask.ravel()]
+            return frq[iRavelXY]
 
         angzD = calcAngZD(ctlgD.weight)
         err2 = calcAngZD(np.square(ctlgD.weight))
 
         iA, iZ = angzD.nonzero()
-        hdu2 = fits.BinTableHDU.from_columns([
+        hduAngzD = fits.BinTableHDU.from_columns([
             fits.Column(name="iAlign", array=iA, format='J'),
             fits.Column(name="iZ", array=iZ, format='I'),
             fits.Column(name='count', array=angzD.data, format='E'),
             fits.Column(name='err2', array=err2.data, format='E')],
                                              name="angzD")
 
-        hdu2.header.add_comment("Sparse 3D histogram (ra, dec, z) of observed galaxies.")
-        hdu2.header.add_comment("Unraveled in (ra,dec) and masked to align with 'ANG' rows.")
-        self.addProvenance(hdu2, self.config.inputFilesObserved())
+        hduAngzD.header.add_comment("Sparse 3D histogram (ra, dec, z) of observed galaxies.")
+        hduAngzD.header.add_comment("Unraveled in (ra,dec) and masked to align with 'ANG' rows.")
+        self.addProvenance(hduAngzD, self.config.inputFilesObserved())
 
-        return [hdu, hdu2]
+        return [hduSlc, hduAng, hduAngzD]
 
 
     def plot(self):

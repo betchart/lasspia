@@ -74,6 +74,7 @@ class combinatorial(La.routine):
         self.hdus.append( self.getPre('centerZ'))
         self.hdus.append( self.getPre('pdfZ'))
         self.hdus.extend( self.fguHDU() )
+        self.addNormalizations()
         self.writeToFile()
 
     @timedHDU
@@ -82,49 +83,26 @@ class combinatorial(La.routine):
                             dtype = [("binCenter", np.float64)])
         return fits.BinTableHDU(centers, name="centerTheta")
 
-    def chunks(self, size):
-        if any([self.config.maxDeltaRA(),
-                self.config.maxDeltaDec()]):
-            return self.__indexChunks__(size)
-        return self.__sliceChunks__(size)
-
-    def __sliceChunks__(self, size):
-        slices = La.utils.slices(size, self.config.chunkSize())
-        return [(slices[i],jSlice)
-                for i in range(len(slices))
-                for jSlice in slices[i:]][self.iJob::self.nJobs]
-
-    def __indexChunks__(self, size):
+    def chunks(self):
         ang = self.getPre('ang').data
-        def regionIndices(ra,dc):
-            mask = reduce(np.logical_and, [ra.start <= ang['binRA'],
-                                           ang['binRA'] < ra.stop,
-                                           dc.start <= ang['binDec'],
-                                           ang['binDec'] < dc.stop],
-                          0 <= ang['binDec'])
-            return mask.nonzero()[0]
+        dRA = self.config.maxDeltaRA()
+        dDC = self.config.maxDeltaDec()
 
-        regions = [[(i,j) for i in self.config.binRegionsRA()]
-                   for j in self.config.binRegionsDec()]
+        if not any([dRA,dDC]):
+            return La.chunking.fromAllSlices(len(ang), self.config.chunkSize())
 
-        rpairs = sum([
-            [(r,r) for row in regions for r in row],                                             # self
-            [(r1,r2) for row in regions for r1,r2 in zip(row,row[1:])],                          # right
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2)],     # below
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1,row2[1:])], # below right
-            [(r1,r2) for row1,row2 in zip(regions,regions[1:]) for r1,r2 in zip(row1[1:],row2)], # below left
-            ], [])
-        cz = self.config.chunkSize()
-        for r1,r2 in rpairs:
-            i1 = regionIndices(*r1)
-            i2 = regionIndices(*r2)
-            schnks = ( self.__sliceChunks__(len(i1)) if r1==r2 else
-                       [(s1,s2)
-                        for s1 in La.utils.slices(len(i1),cz)
-                        for s2 in La.utils.slices(len(i2),cz)][self.iJob::self.nJobs])
-            for s1,s2 in schnks:
-                yield i1[s1], i2[s2]
-        return
+        if self.config.regionBasedCombinations():
+            args = (ang['binRA'], ang['binDec'],
+                    La.slicing.binRegions(dRA, self.config.binningRA()),
+                    La.slicing.binRegions(dDC, self.config.binningDec()),
+                    self.config.chunkSize())
+            return La.chunking.byRegions(*args)
+
+        args = (self.getPre('slicePoints').data['bin'],
+                ang['binRA'], ang['binDec'],
+                dRA * La.utils.invBinWidth(self.config.binningRA()),
+                dDC * La.utils.invBinWidth(self.config.binningDec()))
+        return La.chunking.fromProximateSlices(*args)
 
     def fgueInit(self, typeR, typeD, zBins):
         tBins = self.config.binningTheta()['bins']
@@ -177,7 +155,7 @@ class combinatorial(La.routine):
          uThetaZZ,
          uThetaZZe2) = self.fgueInit(ch.typeR, ch.typeD, ch.zBins)
 
-        for chunk in self.chunks(len(ch.ang)):
+        for chunk in self.chunks()[self.iJob::self.nJobs]:
             ch.set(*chunk)
             fTheta += self.ft(ch)
             dU, dUe2 = self.utzz(ch, uThetaZZ.shape)
@@ -210,6 +188,19 @@ class combinatorial(La.routine):
                 fits.ImageHDU(gThetaZ.toarray(), name="gThetaZ"),
                 fits.BinTableHDU.from_columns([c1,c2,c3,c4], name="uThetaZZ")
         ]
+
+    def normalizations(self):
+        ang = self.getPre('ANG').data
+        sumR = sum(ang['countR'])
+        sumD = sum(ang['countD'])
+        return zip(['ftheta','gthetaz','uthetazz'],
+                   [0.5*sumR**2, sumR*sumD, 0.5*sumD**2])
+
+    def addNormalizations(self):
+        for hdu, (name,N) in zip(self.hdus[-3:], self.normalizations()):
+            assert hdu.header['extname'] == name.upper()
+            hdu.header['NORM'] = N
+        return
 
     @property
     def inputFileName(self):
@@ -254,4 +245,5 @@ class combinatorial(La.routine):
             uThetaZZe2 /= 2
             self.hdus.extend(self.fguHDU((fTheta, gThetaZ, uThetaZZ, uThetaZZe2)))
             self.hdus[-1].header['cputime'] = cputime
+            self.addNormalizations()
             self.writeToFile()
