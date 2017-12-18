@@ -1,4 +1,3 @@
-import lasspia as La
 import math
 from cmassN import cmassN
 
