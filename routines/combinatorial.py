@@ -96,7 +96,7 @@ class combinatorial(La.routine):
                     La.slicing.binRegions(dRA, self.config.binningRA()),
                     La.slicing.binRegions(dDC, self.config.binningDec()),
                     self.config.chunkSize())
-            return La.chunking.byRegions(*args)
+            return list(La.chunking.byRegions(*args))
 
         args = (self.getPre('slicePoints').data['bin'],
                 ang['binRA'], ang['binDec'],
