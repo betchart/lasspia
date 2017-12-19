@@ -146,7 +146,7 @@ one of the two strategies explained below.  Such exclusion can
 significantly reduce both the time and memory required for the
 computation.
 
-#### Strategy 1: Proximate Grouped Slices
+#### Strategy 1: Proximate Slices
 
 The default strategy, implemented when the configuration function
 `regionBasedCombinations()` is defined as `False`, computes only
