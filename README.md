@@ -1,6 +1,7 @@
 # Fast Calculation for Galaxy Two-Point Correlations
 
-A Python implementation of the algorithm described in [Paper Reference].
+A Python implementation of the algorithm described in [
+A Computationally E cient Approach for Calculating Galaxy Two-Point Correlations](https://arxiv.org/pdf/1611.09892.pdf).
 
 ## Getting Started
 
