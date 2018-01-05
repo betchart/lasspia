@@ -31,12 +31,6 @@ class preprocessing(La.routine):
             hdu.header['prov%d'%i] = (f.split('/')[-1],
                                       "Source data file.")
 
-    @staticmethod
-    def iType(iMax):
-        return (np.int16 if iMax < np.iinfo(np.int16).max else
-                np.int32 if iMax < np.iinfo(np.int32).max else
-                np.int64)
-
     @timedHDU
     def pdfZ(self, ctlg):
         frq, edges = np.histogram(ctlg.z,
