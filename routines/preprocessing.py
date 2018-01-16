@@ -10,13 +10,18 @@ class preprocessing(La.routine):
     Open input catalogs, create histograms, save to file.
     """
     def __call__(self):
+        zFltr = La.catalogFilter(binningZ=self.config.binningZ())
+        aFltr = La.catalogFilter(binningRA=self.config.binningRA(),
+                                 binningDec=self.config.binningDec())
+
         ctlgR = self.config.catalogRandom()
         ctlgD = self.config.catalogObserved()
+
         self.hdus.append( self.binCenters(self.config.edgesZ(), "centerZ") )
         self.hdus.append( self.binCenters(self.config.edgesRA(), "centerRA") )
         self.hdus.append( self.binCenters(self.config.edgesDec(), "centerDec") )
-        self.hdus.append( self.pdfZ(ctlgR) )
-        self.hdus.extend( self.ang(ctlgR, ctlgD) )
+        self.hdus.append( self.pdfZ( zFltr(ctlgR)) )
+        self.hdus.extend( self.ang( aFltr(ctlgR), aFltr(zFltr(ctlgD))) )
         self.writeToFile()
 
     @timedHDU
@@ -34,7 +39,7 @@ class preprocessing(La.routine):
     @timedHDU
     def pdfZ(self, ctlg):
         frq, edges = np.histogram(ctlg.z,
-                                  weights = ctlg.weightZ / sum(ctlg.weightZ),
+                                  weights = ctlg.weightZ / ctlg.sumweightZ,
                                   **self.config.binningZ())
 
         pdfz = np.array(zip(edges, frq),
@@ -75,6 +80,8 @@ class preprocessing(La.routine):
             fits.Column(name="countR",array=angR[iXs,iYs], format='I'),
             fits.Column(name="countD",array=angD[iXs,iYs], format='E')],
                                             name="ang")
+        hduAng.header['sumR'] = ctlgR.sumweightNoZ
+        hduAng.header['sumD'] = ctlgD.sumweight
         hduAng.header.add_comment("Unraveled angular (ra,dec) 2D histogram.")
         hduAng.header.add_comment("Histogram for random catalog filled with z independent weights.")
         self.addProvenance(hduAng,

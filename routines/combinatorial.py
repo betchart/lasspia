@@ -190,9 +190,9 @@ class combinatorial(La.routine):
         ]
 
     def normalizations(self):
-        ang = self.getPre('ANG').data
-        sumR = sum(ang['countR'])
-        sumD = sum(ang['countD'])
+        angH = self.getPre('ANG').header
+        sumR = angH['sumR']
+        sumD = angH['sumD']
         return zip(['ftheta','gthetaz','uthetazz'],
                    [0.5*sumR**2, sumR*sumD, 0.5*sumD**2])
 
