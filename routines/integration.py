@@ -157,7 +157,7 @@ class integration(La.routine):
             plt.close()
 
         def xissPlot(pdf, sMax):
-            iStop = next(iter(np.where(tpcf.s >= sMax)[0]))
+            iStop = None if tpcf.s[-1]<sMax else next(iter(np.where(tpcf.s >= sMax)[0]))
             s = tpcf.s[:iStop]
             xi = ( (tpcf.RR[:iStop]/nRR + tpcf.DD[:iStop]/nDD - 2*tpcf.DR[:iStop]/nDR)
                    / (tpcf.RR[:iStop]/nRR) )
