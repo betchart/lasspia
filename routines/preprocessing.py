@@ -1,3 +1,4 @@
+from __future__ import print_function
 import lasspia as La
 import numpy as np
 from astropy.io import fits
@@ -10,9 +11,9 @@ class preprocessing(La.routine):
     Open input catalogs, create histograms, save to file.
     """
     def __call__(self):
-        zFltr = La.catalogFilter(binningZ=self.config.binningZ())
+        zFltr = La.catalogFilter(binningZ=self.config.binningZ(), output=self.out)
         aFltr = La.catalogFilter(binningRA=self.config.binningRA(),
-                                 binningDec=self.config.binningDec())
+                                 binningDec=self.config.binningDec(), output=self.out)
 
         ctlgR = self.config.catalogRandom()
         ctlgD = self.config.catalogObserved()
@@ -42,7 +43,7 @@ class preprocessing(La.routine):
                                   weights = ctlg.weightZ / ctlg.sumweightZ,
                                   **self.config.binningZ())
 
-        pdfz = np.array(zip(edges, frq),
+        pdfz = np.array(list(zip(edges, frq)),
                         dtype = [("lowEdge", np.float64),
                                  ("probability", np.float32)])
 
@@ -133,8 +134,8 @@ class preprocessing(La.routine):
             shp = len(ra), len(dc)
             h2d = csr_matrix((ang.countR, (ang.binRA, ang.binDec)), shape=shp)
 
-            ddc = 0.5 * abs(dc[-1]-dc[0])/(len(dc)-1)
-            dra = 0.5 * abs(ra[-1]-ra[0])/(len(ra)-1)
+            ddc = 0.5 * abs(dc[-1]-dc[0]) / (len(dc)-1)
+            dra = 0.5 * abs(ra[-1]-ra[0]) / (len(ra)-1)
             ext = (ra[-1]-dra, ra[0]+dra, dc[0]-ddc, dc[-1]+ddc)
 
             plt.figure()
@@ -162,5 +163,5 @@ class preprocessing(La.routine):
         with PdfPages(infile.replace('fits','pdf')) as pdf:
             angPlot(pdf)
             zPlot(pdf)
-            print 'Wrote %s'% pdf._file.fh.name
+            print('Wrote %s'% pdf._file.fh.name)
         return

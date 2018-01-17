@@ -43,7 +43,7 @@ class integration(La.routine):
         '''A cubic grid of sigma (pi) values
         for pairs of galaxies with coordinates (iTheta, iZ1, iZ2).'''
         Iz = self.zIntegral()
-        rOfZ = Iz * (self.config.lightspeed()/self.config.H0())
+        rOfZ = Iz * (self.config.lightspeed() / self.config.H0())
         tOfZ = rOfZ * (1 + self.config.omegasMKL()[1]/6 * Iz**2)
 
         thetas = self.getInput('centertheta').data['binCenter'][slcT]
@@ -80,7 +80,7 @@ class integration(La.routine):
         counts = utzz[wName][slc][mask]
         iTh = iThetas[mask] - (slcT.start or 0)
         iZdZ = utzz['binZdZ'][slc][mask]
-        iZ = iZdZ / s.shape[1]
+        iZ = iZdZ // s.shape[1]
         diZ = iZdZ % s.shape[1]
         iZ2 = iZ + diZ
 
@@ -144,7 +144,7 @@ class integration(La.routine):
                         h['normdd']))(fits.getheader(infile, 'TPCF'))
 
         def tpcfPlot(pdf, binFactor):
-            iStop = len(tpcf.s)/binFactor
+            iStop = len(tpcf.s) // binFactor
             plt.figure()
             plt.title(self.config.__class__.__name__)
             plt.step(tpcf.s[:iStop], tpcf.RR[:iStop]/nRR, where='mid', label='RR', linewidth=0.4)
@@ -178,5 +178,5 @@ class integration(La.routine):
             for i in range(5):
                 tpcfPlot(pdf, 2**i)
             xissPlot(pdf, 200)
-            print 'Wrote %s'% pdf._file.fh.name
+            print('Wrote %s'% pdf._file.fh.name)
         return

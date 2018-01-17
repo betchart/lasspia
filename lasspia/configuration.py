@@ -1,7 +1,7 @@
 import sys
 import numpy as np
-import utils
-import slicing
+from lasspia import utils
+from lasspia import slicing
 
 class configuration(object):
 

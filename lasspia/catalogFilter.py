@@ -1,5 +1,7 @@
+from __future__ import print_function
 import numpy as np
 from copy import deepcopy
+from functools import reduce
 
 class FilteredCatalog(object):
     def addProp(p):
@@ -32,7 +34,8 @@ class FilteredCatalog(object):
     def __len__(self): return len(self.indices)
 
 class catalogFilter(object):
-    def __init__(self, binningRA=None, binningDec=None, binningZ=None):
+    def __init__(self, binningRA=None, binningDec=None, binningZ=None, output=None):
+        self.out = output
         self.cuts = []
         for atr, binning in zip(['ra','dec','z'],
                                 ['binningRA','binningDec','binningZ']):
@@ -51,5 +54,6 @@ class catalogFilter(object):
         indices = np.where(self.pred(cat))[0]
         if len(indices) < len(cat):
             print("Warning: Some catalog values are outside the configured ranges for %s and will be filtered." %
-                  (' and '.join(set(a for a,c,v in self.cuts))))
+                  (' and '.join(set(a for a,c,v in self.cuts))),
+                  file=self.out)
         return FilteredCatalog(cat, indices)

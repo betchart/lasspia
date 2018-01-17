@@ -1,7 +1,8 @@
-from configuration import configuration
-from routine import routine
-from wrapSDSS import wrapRandomSDSS
-from wrapSDSS import wrapObservedSDSS
-from catalogFilter import catalogFilter
-import slicing
-import chunking
+from lasspia.configuration import configuration
+from lasspia.routine import routine
+from lasspia.wrapSDSS import wrapRandomSDSS
+from lasspia.wrapSDSS import wrapObservedSDSS
+from lasspia.catalogFilter import catalogFilter
+from lasspia import utils
+from lasspia import slicing
+from lasspia import chunking

@@ -1,5 +1,5 @@
 import numpy as np
-import slicing
+from lasspia import slicing
 
 def fromSlices(slices, predFunc):
     return [(iSlice,jSlice)

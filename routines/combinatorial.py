@@ -4,6 +4,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from astropy.io import fits
 from lasspia.timing import timedHDU
+from lasspia.utils import halve
 
 DEGTORAD = math.pi / 180
 
@@ -167,9 +168,9 @@ class combinatorial(La.routine):
             pass
 
         if self.iJob is None:
-            fTheta /= 2
-            uThetaZZ /= 2
-            uThetaZZe2 /= 2
+            halve(fTheta)
+            halve(uThetaZZ)
+            halve(uThetaZZe2)
 
         return (fTheta, gThetaZ, uThetaZZ, uThetaZZe2)
 
@@ -240,9 +241,9 @@ class combinatorial(La.routine):
             self.hdus.append(h0["centerTheta"])
             self.hdus.append(h0["centerZ"])
             self.hdus.append(h0["pdfZ"])
-            fTheta /= 2
-            uThetaZZ /= 2
-            uThetaZZe2 /= 2
+            halve(fTheta)
+            halve(uThetaZZ)
+            halve(uThetaZZe2)
             self.hdus.extend(self.fguHDU((fTheta, gThetaZ, uThetaZZ, uThetaZZe2)))
             self.hdus[-1].header['cputime'] = cputime
             self.addNormalizations()

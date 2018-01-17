@@ -45,7 +45,7 @@ def parseEnv(args):
             iJob = int(os.environ[args.iJobEnv[0]])
             args.iJob = [iJob]
         except KeyError:
-            print "No such environment variable %s" % args.iJobEnv[0]
+            print( "No such environment variable %s" % args.iJobEnv[0])
             exit()
     return
 

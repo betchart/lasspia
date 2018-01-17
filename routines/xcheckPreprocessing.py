@@ -1,3 +1,4 @@
+from __future__ import print_function
 import lasspia as La
 import numpy as np
 from astropy.io import fits
@@ -17,7 +18,7 @@ class xcheckPreprocessing(La.routine):
         angzd = getAngZD((len(ang),len(zCenter)))
         assert len(ang['countD'].nonzero()[0]) == len(angzd.sum(axis=1).nonzero()[0])
         assert 1e-6 > abs(angzd.sum() - ang['countD'].sum()) / ang['countD'].sum()
-        print>>self.out, 'Cross-checks pass!'
+        print('Cross-checks pass!', file=self.out)
 
     @property
     def inputFileName(self):
