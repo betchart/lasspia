@@ -15,6 +15,7 @@ class routine(object):
                            self.outputFileName.replace('fits','txt'))
         if self.streamFile and os.path.exists(self.streamFile):
             os.remove(self.streamFile)
+        config.checkConsistency(self.out)
 
     def jobString(self, iJob=None):
         if iJob is None:

@@ -1,4 +1,6 @@
+from __future__ import print_function
 import sys
+import math
 import numpy as np
 from lasspia import utils
 from lasspia import slicing
@@ -43,10 +45,6 @@ class configuration(object):
     @property
     def name(self) : return self.__class__.__name__
         
-    @property
-    def nWriteAttempts(self):
-        return 10
-
     def stageFileName(self, stage):
         return '/'.join([self.outputLocation().rstrip('/'),
                          "%s_%s.fits" % (self.name, str(stage))])
@@ -62,3 +60,43 @@ class configuration(object):
     def edgesFromBinning(binning):
         _,edges = np.histogram([], **binning)
         return edges
+
+    def checkConsistency(self, output=None):
+        self.checkThetaRange(output=output)
+
+
+    def checkThetaRange(self, output=None):
+        thetaLo, thetaHi = self.binningTheta()['range']
+
+        if 0 < thetaLo:
+            text = ["Warning: %s.binningTheta() defines" % self.name,
+                    "a range minimum greater than zero,",
+                    "which will cause routines/combinatorial.py to crash."]
+            print("\n         ".join(text), "\n", file=output)
+
+        def deltaRA():
+            raLo, raHi = [ra/180. for ra in self.binningRA()['range']]
+            if self.maxDeltaRA():
+                aMax = self.maxDeltaRA()
+                return min(2*aMax, raHi-raLo)
+            return raHi-raLo
+
+        def decLOHI():
+            dLo, dHi = [dec/180. for dec in self.binningDec()['range']]
+            if self.maxDeltaDec():
+                dMax = self.maxDeltaDec()
+                return (dLo,dHi) if (dHi-dLo) < 2*dMax else (-dMax,dMax)
+
+        def maxTheta():
+            dLo,dHi = decLOHI()
+            ss = math.sin(dLo)*math.sin(dHi)
+            cc = math.cos(dLo)*math.cos(dHi)
+            return math.acos(math.cos(deltaRA()) * cc + ss)
+
+        maxT = maxTheta()
+        if thetaHi < maxT:
+            text = ["Warning: %s.maxDeltaRA() and %s.maxDeltaDec()" % (self.name, self.name),
+                    "imply possible values of theta up to %f" % maxT,
+                    "but %s.binningTheta() defines a range maximum of only %f," % (self.name, thetaHi),
+                    "which may cause routines/combinatorial.py to crash."]
+            print("\n         ".join(text), "\n", file=output)
