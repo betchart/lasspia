@@ -53,3 +53,12 @@ def halve(nparray):
     else:
         nparray /= 2
     return
+
+def reportProgress(iterable, maxval=None):
+    if not maxval:
+        maxval = len(iterable)
+    for i,it in enumerate(iterable):
+        print('\r', i+1, 'of', maxval, end='')
+        sys.stdout.flush()
+        yield it
+    print()

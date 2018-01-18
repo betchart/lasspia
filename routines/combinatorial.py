@@ -156,7 +156,7 @@ class combinatorial(La.routine):
          uThetaZZ,
          uThetaZZe2) = self.fgueInit(ch.typeR, ch.typeD, ch.zBins)
 
-        for chunk in self.chunks()[self.iJob::self.nJobs]:
+        for chunk in La.utils.reportProgress(self.chunks()[self.iJob::self.nJobs]):
             ch.set(*chunk)
             fTheta += self.ft(ch)
             dU, dUe2 = self.utzz(ch, uThetaZZ.shape)
