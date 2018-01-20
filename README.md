@@ -43,6 +43,13 @@ Test your installation by running the 'quickscan.py' routine.
 ./lasspia.py configs/cmassS.py routines/quickscan.py
 ```
 
+## Usage
+
+Usage syntax and a full list of options can be obtained via the `-h` or `--help` flag:
+```
+./lasspia.py --help
+```
+
 ## A Complete Example
 
 We can quickly find the two-point correlation function xi for
