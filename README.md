@@ -4,6 +4,33 @@ A Python implementation of the algorithm described in [A
 Computationally Efficient Approach for Calculating Galaxy Two-Point
 Correlations](https://arxiv.org/pdf/1611.09892.pdf).
 
+<!-- toc -->
+
+- [Getting Started](#getting-started)
+  * [Prerequisites](#prerequisites)
+  * [Installing](#installing)
+  * [Usage](#usage)
+- [A Complete Example](#a-complete-example)
+  * [Preprocessing](#preprocessing)
+  * [Combinatorial](#combinatorial)
+  * [Integration](#integration)
+- [Parallel and Batch Processing](#parallel-and-batch-processing)
+  * [Parallel and Batch Examples](#parallel-and-batch-examples)
+- [Time-Saving and Memory-Saving Strategies](#time-saving-and-memory-saving-strategies)
+  * [Maximum Delta: Z](#maximum-delta-z)
+  * [Maximum Delta: RA and Dec](#maximum-delta-ra-and-dec)
+    + [Strategy 1: Proximate Slices](#strategy-1-proximate-slices)
+    + [Strategy 2: Regions](#strategy-2-regions)
+- [Subsampling and Z-slicing](#subsampling-and-z-slicing)
+  * [Subsampling](#subsampling)
+  * [Z-Slicing](#z-slicing)
+- [Contributing](#contributing)
+- [Versioning](#versioning)
+- [Authors](#authors)
+- [License](#license)
+
+<!-- tocstop -->
+
 ## Getting Started
 
 Instructions to run the project on your local machine.
