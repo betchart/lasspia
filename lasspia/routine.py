@@ -16,6 +16,7 @@ class routine(object):
         if self.streamFile and os.path.exists(self.streamFile):
             os.remove(self.streamFile)
         config.checkConsistency(self.out)
+        self.closeStreams()
 
     def jobString(self, iJob=None):
         if iJob is None:
@@ -33,6 +34,15 @@ class routine(object):
         if not hasattr(self, '_ostream') or self._ostream.closed:
             self._ostream = sys.stdout if not self.streamFile else open(self.streamFile, 'a')
         return self._ostream
+
+    def closeStreams(self):
+        if hasattr(self, '_ostream'):
+            if self._ostream == sys.stdout:
+                self._ostream = None
+            elif self._ostream:
+                self._ostream.close()
+            del self._ostream
+        return
 
     def writeToFile(self):
         hdulist = fits.HDUList(self.hdus)
