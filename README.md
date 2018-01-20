@@ -19,8 +19,6 @@ Correlations](https://arxiv.org/pdf/1611.09892.pdf).
 - [Time-Saving and Memory-Saving Strategies](#time-saving-and-memory-saving-strategies)
   * [Maximum Delta: Z](#maximum-delta-z)
   * [Maximum Delta: RA and Dec](#maximum-delta-ra-and-dec)
-    + [Strategy 1: Proximate Slices](#strategy-1-proximate-slices)
-    + [Strategy 2: Regions](#strategy-2-regions)
 - [Subsampling and Z-slicing](#subsampling-and-z-slicing)
   * [Subsampling](#subsampling)
   * [Z-Slicing](#z-slicing)
