@@ -1,7 +1,7 @@
 # Fast Calculation for Galaxy Two-Point Correlations
 
 A Python implementation of the algorithm described in [
-A Computationally E cient Approach for Calculating Galaxy Two-Point Correlations](https://arxiv.org/pdf/1611.09892.pdf).
+A Computationally Efficient Approach for Calculating Galaxy Two-Point Correlations](https://arxiv.org/pdf/1611.09892.pdf).
 
 ## Getting Started
 
@@ -43,7 +43,7 @@ Test your installation by running the 'quickscan.py' routine.
 ./lasspia.py configs/cmassS.py routines/quickscan.py
 ```
 
-## Usage
+### Usage
 
 Usage syntax and a full list of options can be obtained via the `-h` or `--help` flag:
 ```
@@ -116,7 +116,7 @@ Run the integration.plot() method.
 ## Parallel and Batch Processing
 
 The `combinatorial` and `integration` routines respond to the option
-`--nJobs` to break processing into parallelizable units.  Combine with
+`--nJobs` to break processing into parallelizable units.  Use in conjunction with
 the `--nCores` option to specify the number of processes to run
 locally in parallel, or with the `--iJob` option to specify one (or
 several) units to process.  Some batch systems which accept "job
@@ -126,6 +126,19 @@ After all units have succeeded, their outputs may be combined by
 repeating the `--nJobs` command, absent any of `--nCores`, `--iJob`,
 or `--iJobEnv`.  A minimal Dockerfile is included for use with batch
 systems that run containers.
+
+### Parallel and Batch Examples
+
+To process 8 units using 2 processes on your local machine:
+```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8 --nCores 2```
+The `--nCores` option is not appropriate for most batch systems.
+
+To process the first of 16 jobs:
+```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 16 --iJob 0```
+This is probably a good template for the command to run as a batch job, where the argument to `--iJob` is unique for each submission, or is set as part of an array of jobs.
+
+To combine the resulting 8 output files of the first example:
+```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8```
 
 ## Time-Saving and Memory-Saving Strategies
 
