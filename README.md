@@ -1,7 +1,8 @@
 # Fast Calculation for Galaxy Two-Point Correlations
 
-A Python implementation of the algorithm described in [
-A Computationally Efficient Approach for Calculating Galaxy Two-Point Correlations](https://arxiv.org/pdf/1611.09892.pdf).
+A Python implementation of the algorithm described in [A
+Computationally Efficient Approach for Calculating Galaxy Two-Point
+Correlations](https://arxiv.org/pdf/1611.09892.pdf).
 
 ## Getting Started
 
@@ -72,7 +73,8 @@ View the headers of the output file.
 ```
 ./lasspia.py configs/cmassS_coarse.py routines/preprocessing.py --show
 ```
-Run the preprocessing.plot() method to plot the contents of the output file (PDF output)
+Run the preprocessing.plot() method to plot the contents of the output
+file (PDF output)
 ```
 ./lasspia.py configs/cmassS_coarse.py routines/preprocessing.py --plot
 ```
@@ -116,16 +118,16 @@ Run the integration.plot() method.
 ## Parallel and Batch Processing
 
 The `combinatorial` and `integration` routines respond to the option
-`--nJobs` to break processing into parallelizable units.  Use in conjunction with
-the `--nCores` option to specify the number of processes to run
-locally in parallel, or with the `--iJob` option to specify one (or
-several) units to process.  Some batch systems which accept "job
-arrays" use an environment variable to specify the job index, in which
-case it may be convenient to specify `--iJobEnv` rather than `--iJob`.
-After all units have succeeded, their outputs may be combined by
-repeating the `--nJobs` command, absent any of `--nCores`, `--iJob`,
-or `--iJobEnv`.  A minimal Dockerfile is included for use with batch
-systems that run containers.
+`--nJobs` to break processing into parallelizable units.  Use in
+conjunction with the `--nCores` option to specify the number of
+processes to run locally in parallel, or with the `--iJob` option to
+specify one (or several) units to process.  Some batch systems which
+accept "job arrays" use an environment variable to specify the job
+index, in which case it may be convenient to specify `--iJobEnv`
+rather than `--iJob`.  After all units have succeeded, their outputs
+may be combined by repeating the `--nJobs` command, absent any of
+`--nCores`, `--iJob`, or `--iJobEnv`.  A minimal Dockerfile is
+included for use with batch systems that run containers.
 
 ### Parallel and Batch Examples
 
@@ -135,7 +137,9 @@ The `--nCores` option is not appropriate for most batch systems.
 
 To process the first of 16 jobs:
 ```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 16 --iJob 0```
-This is probably a good template for the command to run as a batch job, where the argument to `--iJob` is unique for each submission, or is set as part of an array of jobs.
+Depending on your batch system, this may be a good template for the
+command to run for each job, where the argument to `--iJob` is unique
+for each submission, or is set as part of an array of jobs.
 
 To combine the resulting 8 output files of the first example:
 ```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8```
@@ -196,6 +200,20 @@ neighboring regions.  The configuration functions `maxDeltaRA()` and
 number of galaxy-bin combinations considered as much as the default
 strategy.
 
+## Subsampling and Z-slicing
+
+### Subsampling
+
+You can use a smaller portion of the catalogs as input to the
+algorithm simply by configuring the desired range for any of redshift
+(`binningZ()`), right ascension (`binningRA()`), or declination
+(`binningDec()`).  Catalog entries that fall outside of the defined
+ranges will be excluded from processing, except that the overall
+normalization factors are calculated from the unfiltered catalogs.
+
+### Z-Slicing
+
+Pending
 
 ## Contributing
 
