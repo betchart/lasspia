@@ -5,28 +5,28 @@ from lasspia import utils
 
 def parseArgs():
     from argparse import ArgumentParser
-    parser = ArgumentParser(description="Fast calculation of two-point correlations.")
+    parser = ArgumentParser(description="Large Scale Structure Probability Integration Algorithm")
 
     parser.add_argument('configFile', metavar='configFile', type=str, nargs=1,
-                        help='A python file containing a subclass of lasspia.configuration')
+                        help='A python file containing a subclass of lasspia.configuration of the same name.')
 
     parser.add_argument('routineFile', metavar='routineFile', type=str, nargs=1,
-                        help='A python file containing a subclass of lasspia.routine')
+                        help='A python file containing a subclass of lasspia.routine of the same name.')
 
     parser.add_argument('--nJobs', metavar='nJobs', type=int, nargs=1,
-                        help='Divide the processing into nJobs portions: process all jobs in parallel (with --nCores), or process just one job (with --iJob), or combine job outputs.')
+                        help='Divide the processing into nJobs portions: process all jobs in parallel (with --nCores), or process just one job (with --iJob or --iJobEnv), or combine job outputs.')
 
     parser.add_argument('--iJob', metavar='iJob', type=int, nargs='+',
-                        help='Index of the job to process (requires --nJobs).')
+                        help='Index of the job to process (requires --nJobs; see also --iJobEnv).')
 
     parser.add_argument('--iJobEnv', metavar='iJobEnv', type=str, nargs=1,
-                        help='Environment variable containing index of the job to process (requires --nJobs).')
+                        help='Environment variable containing index of the job to process (requires --nJobs; alternative to --iJob).')
 
     parser.add_argument('--nCores', metavar='nCores', type=int, nargs=1,
-                        help='Use nCores in parallel (requires --nJobs).')
+                        help='Use nCores in parallel on your local machine. (requires --nJobs; not for use on batch systems)')
 
     parser.add_argument('--txtToFile', action='store_true',
-                        help='Direct messages to file.')
+                        help='Redirect messages to file.')
 
     parser.add_argument('--show', action='store_true',
                         help='Show info and HDU headers of the output file.')
