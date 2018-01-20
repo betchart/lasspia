@@ -66,6 +66,9 @@ class configuration(object):
 
 
     def checkThetaRange(self, output=None):
+        if not self.binningTheta():
+            print("Warning: binningTheta() is not configured.")
+            return
         thetaLo, thetaHi = self.binningTheta()['range']
 
         if 0 < thetaLo:
@@ -86,6 +89,7 @@ class configuration(object):
             if self.maxDeltaDec():
                 dMax = self.maxDeltaDec()
                 return (dLo,dHi) if (dHi-dLo) < 2*dMax else (-dMax,dMax)
+            return dLo,dHi
 
         def maxTheta():
             dLo,dHi = decLOHI()
