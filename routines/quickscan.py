@@ -1,15 +1,18 @@
+from __future__ import print_function
 import lasspia as La
 
 class quickscan(La.routine):
 
     def scan(self, label, ctlg):
-        print >>self.out
-        print >>self.out, "%s: %d" % (label, len(ctlg.z))
-        print >>self.out, "  Sum of weights: %f" % sum(ctlg.weight)
-        print >>self.out, "  Max weight: %f" % max(ctlg.weight)
-        print >>self.out, "  Redshift range: [%f, %f] " % (min(ctlg.z), max(ctlg.z))
-        print >>self.out, "  Declination range: [%f, %f]" % (min(ctlg.dec), max(ctlg.dec))
-        print >>self.out, "  Right ascension range: [%f, %f]" % (min(ctlg.ra), max(ctlg.ra))
+        output = [''
+                  ,"%s: %d" % (label, len(ctlg.z))
+                  ,"  Sum of weights: %f" % sum(ctlg.weight)
+                  ,"  Max weight: %f" % max(ctlg.weight)
+                  ,"  Redshift range: [%f, %f] " % (min(ctlg.z), max(ctlg.z))
+                  ,"  Declination range: [%f, %f]" % (min(ctlg.dec), max(ctlg.dec))
+                  ,"  Right ascension range: [%f, %f]" % (min(ctlg.ra), max(ctlg.ra))
+        ]
+        print('\n'.join(output), file=self.out)
 
     def __call__(self):
         self.scan( "Observed Galaxies",
@@ -17,5 +20,5 @@ class quickscan(La.routine):
 
         self.scan( "Random Galaxies",
                    self.config.catalogRandom() )
-        print>>self.out
+        print(file=self.out)
         return

@@ -8,6 +8,7 @@ def openSDSS(files):
         for f in files
     ])
 
+
 class wrapSDSS(object):
     """Catalog wrapper interface for SDSS.
 
@@ -34,7 +35,10 @@ class wrapSDSS(object):
 
     @property
     def weight(self):
-        return len(self.ctlg) * [1]
+        return np.ones(len(self.ctlg), dtype=int)
+
+    def __len__(self): return len(self.ctlg)
+
 
 class wrapRandomSDSS(wrapSDSS):
     """Catalog wrapper with SDSS random catalog weights."""
@@ -42,7 +46,7 @@ class wrapRandomSDSS(wrapSDSS):
         super(wrapRandomSDSS, self).__init__(files,shiftRA)
 
     @property
-    def weight(self): return self.weightZ
+    def weight(self): return self.weightZ * self.weightNoZ
 
     @property
     def weightZ(self):
@@ -52,7 +56,7 @@ class wrapRandomSDSS(wrapSDSS):
     @property
     def weightNoZ(self):
         '''Z-independent weight.'''
-        return None
+        return np.ones(len(self.ctlg), dtype=int)
 
 class wrapObservedSDSS(wrapSDSS):
     """Catalog wrapper with SDSS observed catalog weights."""

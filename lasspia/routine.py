@@ -1,3 +1,4 @@
+from __future__ import print_function
 from astropy.io import fits
 import sys
 import os
@@ -14,6 +15,7 @@ class routine(object):
                            self.outputFileName.replace('fits','txt'))
         if self.streamFile and os.path.exists(self.streamFile):
             os.remove(self.streamFile)
+        config.checkConsistency(self.out)
 
     def jobString(self, iJob=None):
         if iJob is None:
@@ -37,21 +39,22 @@ class routine(object):
         if os.path.exists(self.outputFileName):
             os.remove(self.outputFileName)
         hdulist.writeto(self.outputFileName)
-        print>>self.out, "Wrote %s" % self.outputFileName
+        print("Wrote %s" % self.outputFileName, file=self.out)
 
     def showFitsHeaders(self):
         if not os.path.exists(self.outputFileName):
-            print>>self.out, 'Not found:', self.outputFileName
-            print>>self.out, 'Perhaps you need to first create',
-            print>>self.out, 'it by running the routine.'
+            print('Not found:', self.outputFileName, file=self.out)
+            print('Perhaps you need to first create',
+                  'it by running the routine.',
+                  file = self.out)
             return
 
         with fits.open(self.outputFileName) as hdus:
             hdus.info(self.out)
             for h in hdus:
-                print>>self.out
-                print>>self.out, repr(h.header)
-            print>>self.out
+                print(file=self.out)
+                print(repr(h.header), file=self.out)
+            print(file=self.out)
         return
 
     def __call__(self):
@@ -64,4 +67,4 @@ class routine(object):
 
     def plot(self):
         '''Defined in subclasses, to be run when lasspia.py receives the --plot flag.'''
-        print 'No plot() method defined for %s.' % self.__class__.__name__
+        print( 'No plot() method defined for %s.' % self.__class__.__name__)

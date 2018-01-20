@@ -1,3 +1,4 @@
+from __future__ import print_function
 import lasspia as La
 import numpy as np
 from astropy.io import fits
@@ -10,13 +11,18 @@ class preprocessing(La.routine):
     Open input catalogs, create histograms, save to file.
     """
     def __call__(self):
+        zFltr = La.catalogFilter(binningZ=self.config.binningZ(), output=self.out)
+        aFltr = La.catalogFilter(binningRA=self.config.binningRA(),
+                                 binningDec=self.config.binningDec(), output=self.out)
+
         ctlgR = self.config.catalogRandom()
         ctlgD = self.config.catalogObserved()
+
         self.hdus.append( self.binCenters(self.config.edgesZ(), "centerZ") )
         self.hdus.append( self.binCenters(self.config.edgesRA(), "centerRA") )
         self.hdus.append( self.binCenters(self.config.edgesDec(), "centerDec") )
-        self.hdus.append( self.pdfZ(ctlgR) )
-        self.hdus.extend( self.ang(ctlgR, ctlgD) )
+        self.hdus.append( self.pdfZ( zFltr(ctlgR)) )
+        self.hdus.extend( self.ang( aFltr(ctlgR), aFltr(zFltr(ctlgD))) )
         self.writeToFile()
 
     @timedHDU
@@ -31,19 +37,13 @@ class preprocessing(La.routine):
             hdu.header['prov%d'%i] = (f.split('/')[-1],
                                       "Source data file.")
 
-    @staticmethod
-    def iType(iMax):
-        return (np.int16 if iMax < np.iinfo(np.int16).max else
-                np.int32 if iMax < np.iinfo(np.int32).max else
-                np.int64)
-
     @timedHDU
     def pdfZ(self, ctlg):
         frq, edges = np.histogram(ctlg.z,
-                                  weights = ctlg.weightZ / sum(ctlg.weightZ),
+                                  weights = ctlg.weightZ / ctlg.sumweightZ,
                                   **self.config.binningZ())
 
-        pdfz = np.array(zip(edges, frq),
+        pdfz = np.array(list(zip(edges, frq)),
                         dtype = [("lowEdge", np.float64),
                                  ("probability", np.float32)])
 
@@ -81,6 +81,8 @@ class preprocessing(La.routine):
             fits.Column(name="countR",array=angR[iXs,iYs], format='I'),
             fits.Column(name="countD",array=angD[iXs,iYs], format='E')],
                                             name="ang")
+        hduAng.header['sumR'] = ctlgR.sumweightNoZ
+        hduAng.header['sumD'] = ctlgD.sumweight
         hduAng.header.add_comment("Unraveled angular (ra,dec) 2D histogram.")
         hduAng.header.add_comment("Histogram for random catalog filled with z independent weights.")
         self.addProvenance(hduAng,
@@ -132,8 +134,8 @@ class preprocessing(La.routine):
             shp = len(ra), len(dc)
             h2d = csr_matrix((ang.countR, (ang.binRA, ang.binDec)), shape=shp)
 
-            ddc = 0.5 * abs(dc[-1]-dc[0])/(len(dc)-1)
-            dra = 0.5 * abs(ra[-1]-ra[0])/(len(ra)-1)
+            ddc = 0.5 * abs(dc[-1]-dc[0]) / (len(dc)-1)
+            dra = 0.5 * abs(ra[-1]-ra[0]) / (len(ra)-1)
             ext = (ra[-1]-dra, ra[0]+dra, dc[0]-ddc, dc[-1]+ddc)
 
             plt.figure()
@@ -161,5 +163,5 @@ class preprocessing(La.routine):
         with PdfPages(infile.replace('fits','pdf')) as pdf:
             angPlot(pdf)
             zPlot(pdf)
-            print 'Wrote %s'% pdf._file.fh.name
+            print('Wrote %s'% pdf._file.fh.name)
         return

@@ -1,6 +1,6 @@
 import numpy as np
-import utils
 import math
+from lasspia import utils
 
 def xyClustersWhere(mask, limit):
     cc = groupedPoints(*np.where(mask), limit=limit)
@@ -22,8 +22,8 @@ def groupedPoints(iX,iY, limit=10):
 
 def indicesCat(iXYs):
     iXs,iYs = zip(*iXYs)
-    lens = map(len,iXs)
-    assert lens == map(len,iYs)
+    lens = list(map(len,iXs))
+    assert lens == list(map(len,iYs))
     return np.cumsum([0]+lens), np.hstack(iXs), np.hstack(iYs)
 
 
@@ -35,4 +35,4 @@ def binRegions(delta, binning):
 def slices(size, step=None, N=None):
     step = step or int(math.ceil(size/N))
     splits = range(0, size, step if step else size)
-    return [slice(i,j) for i,j in zip(splits,splits[1:]+[size])]
+    return [slice(i,j) for i,j in zip(splits,list(splits[1:])+[size])]
