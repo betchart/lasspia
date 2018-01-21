@@ -27,17 +27,25 @@ class configuration(object):
 
     '''Parameters for avoiding unnecessary combinatorial calculations at large s.
     Galaxies farther apart than these parameters may not be included in result.'''
-    def maxDeltaRA(self): return None
-    def maxDeltaDec(self): return None
-    def maxDeltaZ(self): return None
+    def maxDeltaRA(self): pass
+    def maxDeltaDec(self): pass
+    def maxDeltaZ(self): pass
     def regionBasedCombinations(self): return False
+
+    '''Configuration affecting only the "integration" routine.'''
+    def binningS(self): pass
+    def omegasMKL(self): pass
+    def H0(self): pass
+    def lightspeed(self): pass
+    def nBinsMaskZ(self): return 0
+
+
+    '''Functions not meant to be redefined.'''
 
     def edgesZ(self): return self.edgesFromBinning(self.binningZ())
     def edgesRA(self): return self.edgesFromBinning(self.binningRA())
     def edgesDec(self): return self.edgesFromBinning(self.binningDec())
     def edgesTheta(self): return self.edgesFromBinning(self.binningTheta())
-
-    def binningS(self): pass
 
     def __init__(self, txtToFile=False):
         self.txtToFile = txtToFile

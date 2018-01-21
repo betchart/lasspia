@@ -15,6 +15,8 @@ class integration(La.routine):
     @timedHDU
     def tpcf(self):
         self.pdfz = self.getInput('pdfZ').data['probability']
+        self.zMask = np.ones(len(self.pdfz)**2, dtype=np.int).reshape(len(self.pdfz),len(self.pdfz))
+        self.zMask[:self.config.nBinsMaskZ(),:self.config.nBinsMaskZ()] = 0
 
         binsS = self.config.binningS()['bins']
 
@@ -56,14 +58,14 @@ class integration(La.routine):
 
     def calcRR(self,s, slcT):
         ft = self.getInput('fTheta').data['count'][slcT]
-        counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:]
+        counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
         rr = np.histogram(s, weights=counts, **self.config.binningS())[0]
         del counts
         return rr
 
     def calcDR(self,s, slcT):
         gtz = self.getInput('gThetaZ').data
-        counts = gtz[slcT,:,None] * self.pdfz[None,None,:]
+        counts = gtz[slcT,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
         dr = np.histogram(s, weights=counts, **self.config.binningS())[0]
         del counts
         return dr
@@ -77,12 +79,12 @@ class integration(La.routine):
         mask = (slice(None) if slcT==slice(None) else
                 np.logical_and(slcT.start <= iThetas, iThetas < slcT.stop))
 
-        counts = utzz[wName][slc][mask]
         iTh = iThetas[mask] - (slcT.start or 0)
         iZdZ = utzz['binZdZ'][slc][mask]
         iZ = iZdZ // s.shape[1]
         diZ = iZdZ % s.shape[1]
         iZ2 = iZ + diZ
+        counts = utzz[wName][slc][mask] * self.zMask[iZ,iZ2]
 
         dd = np.histogram(s[iTh,iZ,iZ2], weights=counts, **self.config.binningS())[0]
         if overflow and self.iJob in [0,None]:
