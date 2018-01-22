@@ -156,18 +156,24 @@ included for use with batch systems that run containers.
 
 ### Parallel and Batch Examples
 
-To process 8 units using 2 processes on your local machine:
-```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8 --nCores 2```
-The `--nCores` option is not appropriate for most batch systems.
+To divide into 8 units and compute using 2 parallel processes on your local machine:
+```
+./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8 --nCores 2
+```
+NB: The `--nCores` option is not appropriate for most batch systems.
 
 To process the first of 16 jobs:
-```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 16 --iJob 0```
+```
+./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 16 --iJob 0
+```
 Depending on your batch system, this may be a good template for the
 command to run for each job, where the argument to `--iJob` is unique
 for each submission, or is set as part of an array of jobs.
 
 To combine the resulting 8 output files of the first example:
-```./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8```
+```
+./lasspia.py configs/cmassS_coarse.py routines/combinatorial.py --nJobs 8
+```
 
 ## Time-Saving and Memory-Saving Strategies
 
