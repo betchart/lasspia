@@ -6,3 +6,4 @@ from lasspia.catalogFilter import catalogFilter
 from lasspia import utils
 from lasspia import slicing
 from lasspia import chunking
+from lasspia import overlap
