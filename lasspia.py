@@ -2,6 +2,7 @@
 
 import sys
 from lasspia import utils
+from lasspia.zSlicing import SlicesZ
 
 def parseArgs():
     from argparse import ArgumentParser
@@ -82,6 +83,9 @@ if __name__ == "__main__":
         if args.show: routine.showFitsHeaders()
         elif args.plot: routine.plot()
         elif args.nJobs: routine.combineOutput()
+        elif (issubclass(config.__class__, SlicesZ)
+              and config.iSliceZ is None):
+            routine.combineOutputZ()
         else: routine()
 
     elif type(kwargs) is list:

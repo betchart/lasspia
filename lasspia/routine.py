@@ -76,6 +76,12 @@ class routine(object):
         '''Defined in subclasses for paralellizable routines.'''
         raise Exception("The class '%s(lasspia.routine)' does not define 'combineOutput'." % self.__class__.__name__)
 
+    def combineOutputZ(self):
+        '''Defined in subclasses for routines which can combine output from multiple slices in z: see zSlicing.'''
+        raise Exception('\n'.join(["The class '%s(lasspia.routine)' does not define 'combineOutputZ'."
+                                   % self.__class__.__name__,
+                                   "Perhaps you want to specify --iSliceZ"]))
+
     def plot(self):
         '''Defined in subclasses, to be run when lasspia.py receives the --plot flag.'''
         print( 'No plot() method defined for %s.' % self.__class__.__name__)

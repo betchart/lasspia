@@ -3,6 +3,8 @@ from lasspia.configuration import configuration
 from lasspia.overlap import overlapBinnings
 from lasspia.utils import invBinWidth
 
+class SlicesZ(object): pass
+
 def zSlicing(Conf):
     '''Return a z-slicing class inheriting from the class Conf(lasspia.configuration).
 
@@ -19,7 +21,7 @@ def zSlicing(Conf):
         raise Exception('"%s" is not a subclass of lasspia.configuration.' % Conf.__name__)
 
 
-    class SlicesZ(Conf):
+    class ParticularSlicesZ(Conf, SlicesZ):
 
         def zBreaks(self):
             return Conf.binningZ(self)['range']
@@ -50,16 +52,17 @@ def zSlicing(Conf):
 
         @property
         def iSliceZ(self):
-            if self._iSliceZ is None:
-                print("Please specify --iSliceZ")
-                exit()
-            if self._iSliceZ < 0 or self._iSliceZ >= len(self.binningsZ()):
+            if self._iSliceZ is None: pass
+            elif self._iSliceZ < 0 or self._iSliceZ >= len(self.binningsZ()):
                 print("--iSliceZ out of range (%d slices configured)"
                       % len(self.binningsZ()))
                 exit()
             return self._iSliceZ
 
-        def suffixes(self): return ["z%d" % self.iSliceZ]
+        def suffixes(self):
+            return [] if self.iSliceZ is None else [self.suffixZ(self.iSliceZ)]
+
+        def suffixZ(self, iZ): return "z%d" % iZ
 
         def __init__(self, iSliceZ=None, **kwargs):
             self._iSliceZ = iSliceZ
@@ -67,11 +70,11 @@ def zSlicing(Conf):
 
         def info(self, output=None):
             Conf.info(self, output)
-            if self._iSliceZ is not None:
+            if self.iSliceZ is not None:
                 print("Index %d of %d slices in z, %d bins on [%f, %f]"
                       % ((self.iSliceZ, len(self.binningsZ()),
                           self.binningZ()['bins'])
                          + self.binningZ()['range']),
                       file=output)
 
-    return SlicesZ
+    return ParticularSlicesZ
