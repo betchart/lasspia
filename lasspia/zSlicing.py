@@ -13,8 +13,8 @@ def zSlicing(Conf):
     class and overriding 'zBreaks' and 'zMaxBinWidths'.
     Alternatively, you can override 'overlapBinningZ'.
 
-    You could also define angular ranges dependent on iSliceZ by
-    overriding 'binningRA', 'binningDec', and even 'binningTheta'.
+    You could additionally define angular ranges dependent on iSliceZ
+    by overriding 'binningRA', 'binningDec', and even 'binningTheta'.
     '''
 
     if not issubclass(Conf, configuration):
