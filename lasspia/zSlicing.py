@@ -28,10 +28,17 @@ def zSlicing(Conf):
             return [1./invBinWidth(Conf.binningZ(self))]
 
         def overlapBinningZ(self):
-            return overlapBinnings(Conf.maxDeltaZ(self),
-                                   self.zBreaks()[0],
-                                   self.zBreaks()[1:],
-                                   self.zMaxBinWidths())
+            maxDeltaZ = Conf.maxDeltaZ(self)
+            if maxDeltaZ is None:
+                print("z-slicing only works with maxDeltaZ defined.")
+                exit()
+
+            zBreaks = self.zBreaks()
+            if any(hi-lo < maxDeltaZ for lo,hi in zip(zBreaks,zBreaks[1:])):
+                print("z-slice ranges must be greater than maxDeltaZ.")
+                exit()
+
+            return overlapBinnings(maxDeltaZ, zBreaks[0], zBreaks[1:], self.zMaxBinWidths())
 
         # Proceed with caution before overriding the functions defined below.
 
