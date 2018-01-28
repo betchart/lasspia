@@ -34,6 +34,9 @@ def parseArgs():
     parser.add_argument('--plot', action='store_true',
                         help='Run the plot() method of the routine.')
 
+    parser.add_argument('--iSliceZ', metavar='iSliceZ', type=int, nargs=1,
+                        help='Set the index of the z-slice.')
+
     args = parser.parse_args()
     parseEnv(args)
     return args
@@ -64,9 +67,14 @@ def getKWs(args):
     if args.nJobs: return {"nJobs":args.nJobs[0]}
     return {}
 
+def getCfgArgs(args):
+    cfgArgs = {'txtToFile':args.txtToFile}
+    if args.iSliceZ: cfgArgs['iSliceZ'] = args.iSliceZ[0]
+    return cfgArgs
+
 if __name__ == "__main__":
     args = parseArgs()
-    config = getInstance(args.configFile, kwargs = {'txtToFile':args.txtToFile})
+    config = getInstance(args.configFile, kwargs=getCfgArgs(args))
     kwargs = getKWs(args)
 
     if type(kwargs) is dict:

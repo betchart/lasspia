@@ -16,6 +16,7 @@ class routine(object):
         if self.streamFile and os.path.exists(self.streamFile):
             os.remove(self.streamFile)
         config.checkConsistency(self.out)
+        config.info(self.out)
         self.closeStreams()
 
     def jobString(self, iJob=None):

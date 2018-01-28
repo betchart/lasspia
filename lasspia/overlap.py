@@ -2,7 +2,7 @@ from lasspia import utils
 import numpy as np
 import math
 
-def overlapBinning(binning1, minOverlap, maxBinWidth2, minHi2):
+def overlapBinning(binning1, minOverlap, maxBinWidth2, minHi2, precision=10):
     nBins1 = binning1['bins']
     lo1,hi1 = binning1['range']
     bw1 = (hi1 - lo1) / float(nBins1)
@@ -12,26 +12,29 @@ def overlapBinning(binning1, minOverlap, maxBinWidth2, minHi2):
 
     nOverlap2 = int(math.ceil( nOverlap1 * bw1 / maxBinWidth2 ))
     bw2 = nOverlap1 * bw1 / nOverlap2
-    nBins2 = int(math.ceil((minHi2 - lo2) / bw2))
+    nBins2 = int(math.ceil(round((minHi2 - lo2) / bw2
+                                 , precision)))
     hi2 = lo2 + nBins2*bw2
 
     return {'range':(lo2,hi2), 'bins':nBins2}, nOverlap2
 
 
-def overlapBinnings(minOverlap, lo, hiTargets, maxBinWidths):
+def overlapBinnings(minOverlap, lo, hiTargets, maxBinWidths, precision=10):
     '''Return list of pairs (binning, nBinsOverlap) for each region.
 
     Overlaping bins are at the beginning of the given range, and
     overlap with the previous binning definition in the list.
     '''
     assert len(hiTargets) == len(maxBinWidths)
+    tmp = round((hiTargets[0]-lo) / maxBinWidths[0], precision)
     binning1 = {'range':(lo, hiTargets[0]),
-                'bins': int(math.ceil((hiTargets[0]-lo) / maxBinWidths[0]))}
+                'bins': int(math.ceil(round((hiTargets[0]-lo) / maxBinWidths[0]
+                                            , precision)))}
 
     binnings = [binning1]
     overlaps = [0]
     for hiT,maxBW in zip(hiTargets[1:], maxBinWidths[1:]):
-        b,o = overlapBinning(binnings[-1], minOverlap, maxBW, hiT)
+        b,o = overlapBinning(binnings[-1], minOverlap, maxBW, hiT, precision)
         binnings.append(b)
         overlaps.append(o)
 
