@@ -24,13 +24,13 @@ def zSlicing(Conf):
     class ParticularSlicesZ(Conf, SlicesZ):
 
         def zBreaks(self):
-            return Conf.binningZ(self)['range']
+            return self.binningZ()['range']
 
         def zMaxBinWidths(self):
-            return [1./invBinWidth(Conf.binningZ(self))]
+            return [1./invBinWidth(self.binningZ())]
 
         def overlapBinningZ(self):
-            maxDeltaZ = Conf.maxDeltaZ(self)
+            maxDeltaZ = self.maxDeltaZ()
             if maxDeltaZ is None:
                 print("z-slicing only works with maxDeltaZ defined.")
                 exit()
