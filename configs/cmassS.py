@@ -35,7 +35,7 @@ class cmassS(La.configuration):
 
     def maxDeltaRA(self): return 25
     def maxDeltaDec(self): return 25
-    def maxDeltaZ(self): return 0.1
+    def maxDeltaZ(self): return 0.1002
 
 
     '''Configuration affecting only the "integration" routine.'''
