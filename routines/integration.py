@@ -1,3 +1,4 @@
+from __future__ import print_function
 import math
 import numpy as np
 import lasspia as La
@@ -188,5 +189,5 @@ class integration(La.routine):
             for i in range(5):
                 tpcfPlot(pdf, 2**i)
             xissPlot(pdf, 200)
-            print('Wrote %s'% pdf._file.fh.name)
+            print('Wrote %s'% pdf._file.fh.name, file=self.out)
         return
