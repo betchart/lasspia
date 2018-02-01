@@ -3,6 +3,12 @@ import numpy as np
 import math
 
 def overlapBinning(binning1, minOverlap, maxBinWidth2, minHi2, precision=10):
+    '''Return a binning definition and number of overlapping bins such that
+
+    * minOverlap < binning1['range'][1] - lo2
+    * lo2 = binning1['range'][0] + N * bw1 (for some integer N)
+    * hi1 = lo2 + M * bw2 (for some integer M)
+    '''
     nBins1 = binning1['bins']
     lo1,hi1 = binning1['range']
     bw1 = (hi1 - lo1) / float(nBins1)
