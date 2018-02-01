@@ -42,7 +42,7 @@ class catalogFilter(object):
             bng = eval(binning)
             if not bng: continue
             self.cuts.append((atr, np.greater_equal, bng['range'][0]))
-            self.cuts.append((atr, np.less_equal, bng['range'][1]))
+            self.cuts.append((atr, np.less, bng['range'][1]))
 
     def pred(self, cat):
         indicesCut = [compare(getattr(cat, atr), val) for atr, compare, val in self.cuts]
