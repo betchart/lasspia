@@ -257,7 +257,7 @@ can be combined without double-counting.
 In order to avoid the need to laboriously write and maintain multiple
 mutually consistent z-slicing configurations, one can define a
 multi-configuration in which consistency is automatic, by using the
-[zSlicing](lasspia/blob/master/lasspia/zSlicing.py#L8) function.  The
+[zSlicing](lasspia/zSlicing.py#L8) function.  The
 returned configuration class has an automatically defined attribute
 `iSliceZ` which can be used to customize the definition of each
 subsample in z, for example by creating a child configuration in which
@@ -276,7 +276,7 @@ constraint that ranges overlap exactly at bin boundaries.
 An example configuration showing the use of the `zSlicing` class
 function and the `zBreaks` and `zMaxBinWidths` configuration options
 is provided in
-[cmassS_subsample_byZ.py](lasspia/blob/master/configs/cmassS_subsample_byZ.py).
+[cmassS_subsample_byZ.py](configs/cmassS_subsample_byZ.py).
 This configuration defines two slices in z.  The first slice may be
 processed with the following series of commands.
 ```
