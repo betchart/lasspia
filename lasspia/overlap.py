@@ -32,7 +32,6 @@ def overlapBinnings(minOverlap, lo, hiTargets, maxBinWidths, precision=10):
     overlap with the previous binning definition in the list.
     '''
     assert len(hiTargets) == len(maxBinWidths)
-    tmp = round((hiTargets[0]-lo) / maxBinWidths[0], precision)
     binning1 = {'range':(lo, hiTargets[0]),
                 'bins': int(math.ceil(round((hiTargets[0]-lo) / maxBinWidths[0]
                                             , precision)))}
