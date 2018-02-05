@@ -36,7 +36,7 @@ def parseArgs():
                         help='Run the plot() method of the routine.')
 
     parser.add_argument('--iSliceZ', metavar='iSliceZ', type=int, nargs=1,
-                        help='Set the index of the z-slice.')
+                        help='Set the index of the z-slice (only for classes inheriting from lasspia/zSlicing.py:SlicesZ.')
 
     args = parser.parse_args()
     parseEnv(args)

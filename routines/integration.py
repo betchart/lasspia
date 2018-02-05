@@ -9,8 +9,15 @@ from lasspia.timing import timedHDU
 class integration(La.routine):
 
     def __call__(self):
-        self.hdus.append(self.tpcf())
-        self.writeToFile()
+        try:
+            self.hdus.append(self.tpcf())
+            self.writeToFile()
+        except MemoryError as e:
+            print(e.__class__.__name__, e, file=self.out)
+            print('\n'.join(['Use less memory by integrating via multiple jobs.',
+                             'For example, use options: --nJobs 8 --nCores 1',
+                             'Then combine job outputs: --nJobs 8']),
+                            file=self.out)
         return
 
     @timedHDU
