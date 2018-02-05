@@ -51,7 +51,9 @@ class configuration(object):
         self.txtToFile = txtToFile
 
     @property
-    def name(self) : return self.__class__.__name__
+    def name(self): return '_'.join([self.__class__.__name__] + self.suffixes())
+
+    def suffixes(self): return []
         
     def stageFileName(self, stage):
         return '/'.join([self.outputLocation().rstrip('/'),
@@ -68,6 +70,8 @@ class configuration(object):
     def edgesFromBinning(binning):
         _,edges = np.histogram([], **binning)
         return edges
+
+    def info(self, output=None): pass
 
     def checkConsistency(self, output=None):
         self.checkThetaRange(output=output)

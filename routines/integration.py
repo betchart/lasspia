@@ -1,3 +1,4 @@
+from __future__ import print_function
 import math
 import numpy as np
 import lasspia as La
@@ -116,9 +117,10 @@ class integration(La.routine):
         return hdulist[name]
 
 
-    def combineOutput(self):
-        jobFiles = [self.outputFileName + self.jobString(iJob)
-                    for iJob in range(self.nJobs)]
+    def combineOutput(self, jobFiles = None):
+        if not jobFiles:
+            jobFiles = [self.outputFileName + self.jobString(iJob)
+                        for iJob in range(self.nJobs)]
 
         with fits.open(jobFiles[0]) as h0:
             hdu = h0['TPCF']
@@ -133,6 +135,13 @@ class integration(La.routine):
             self.hdus.append(hdu)
             self.writeToFile()
         return
+
+    def combineOutputZ(self):
+        zFiles = [self.outputFileName.replace(self.config.name,
+                                              '_'.join([self.config.name,
+                                                        self.config.suffixZ(iZ)]))
+                  for iZ in range(len(self.config.binningsZ()))]
+        self.combineOutput(zFiles)
 
     def plot(self):
         from matplotlib import pyplot as plt
@@ -180,5 +189,5 @@ class integration(La.routine):
             for i in range(5):
                 tpcfPlot(pdf, 2**i)
             xissPlot(pdf, 200)
-            print('Wrote %s'% pdf._file.fh.name)
+            print('Wrote %s'% pdf._file.fh.name, file=self.out)
         return

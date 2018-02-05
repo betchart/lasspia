@@ -1,5 +1,3 @@
-import lasspia as La
-import math
 from cmassS import cmassS
 
 class cmassS_subsample(cmassS):
