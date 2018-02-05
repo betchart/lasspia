@@ -244,7 +244,59 @@ normalization factors are calculated from the unfiltered catalogs.
 
 ### Z-Slicing
 
-Pending
+It is possible to process data in multiple configurations of
+subsampled redshift, the results of which can be combined at the
+integration step.  For the result to match a single (un-subsampled
+redshift) configuration, the subsampled redshift ranges must overlap
+by at least 'maxDeltaZ', and the configuration option 'nBinsMaskZ'
+must be set to the number bins overlapping the prior (lower z values)
+configuration.  The integration step will omit contributions from
+cells with both z-bin indices less than 'nBinsMaskZ', so that results
+can be combined without double-counting.
+
+In order to avoid the need to laboriously write and maintain multiple
+mutually consistent z-slicing configurations, one can define a
+multi-configuration in which consistency is automatic, by using the
+[zSlicing](lasspia/blob/master/lasspia/zSlicing.py#L8) function.  The
+returned configuration class has an automatically defined attribute
+'iSliceZ' which can be used to customize the definition of each
+subsample in z, for example by creating a child configuration in which
+'binningRA' is dependent in 'iSliceZ'.
+
+For convenience, one can implement mutually consistent z-slicing by
+defining a pair of configuration functions in a class inheriting from
+that returned by 'zSlicing'.  The first configuration function,
+'zBreaks', is an ordered list consisting of the lower bound of the
+lowest z range and the desired upper bound of each z range.  The
+second configuration function, 'zMaxBinWidths', is a corresponding
+list of desired maximum bin widths for each range.  The actual ranges
+and bin widths used may vary slightly from those configured due to the
+constraint that ranges overlap exactly at bin boundaries.
+
+An example configuration showing the use of the 'zSlicing' class
+function and the 'zBreaks' and 'zMaxBinWidths' configuration options
+is provided in
+[cmassS_subsample_byZ.py](lasspia/blob/master/configs/cmassS_subsample_byZ.py).
+This configuration defines two slices in z.  The first slice may be
+processed with the following series of commands.
+'''
+./lasspia.py configs/cmassS_subsample_byZ.py routines/preprocessing.py --iSliceZ 0
+./lasspia.py configs/cmassS_subsample_byZ.py routines/combinatorial.py --iSliceZ 0
+./lasspia.py configs/cmassS_subsample_byZ.py routines/integration.py --iSliceZ 0
+'''
+The second slice may be processed by running the same series of
+commands with '--iSliceZ 1'.  Each slice may be analyzed individually, for example:
+'''
+./lasspia.py configs/cmassS_subsample_byZ.py routines/integration.py --iSliceZ 0 --plot
+'''
+Alternatively, the slices may be combined at the integration step by omitting the '--iSliceZ' option:
+'''
+./lasspia.py configs/cmassS_subsample_byZ.py routines/integration.py
+'''
+and the combined result may be subsequently analyzed.
+'''
+./lasspia.py configs/cmassS_subsample_byZ.py routines/integration.py --plot
+'''
 
 ## Contributing
 
