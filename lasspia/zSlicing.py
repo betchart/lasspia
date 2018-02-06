@@ -75,6 +75,9 @@ def zSlicing(Conf):
                       % ((self.iSliceZ, len(self.binningsZ()),
                           self.binningZ()['bins'])
                          + self.binningZ()['range']),
+                      ("" if not self.iSliceZ else
+                       "; first %d bins overlap iSliceZ=%d" %
+                       (self.nBinsMaskZ(), self.iSliceZ-1)),
                       file=output)
 
     return ParticularSlicesZ
