@@ -17,6 +17,10 @@ def invBinWidth(binning):
 def toBins(ary, binning, dtype=np.int32):
     return ((ary-binning['range'][0]) * invBinWidth(binning)).astype(dtype)
 
+def binsNths(m, n, bins):
+    lo = bins['range'][0]
+    hi = lo + m * (bins['range'][1]-lo) / float(n)
+    return {"bins": int(n*bins['bins']/float(n)), "range":(lo,hi)}
 
 def callInParallel(nCores, itemsToCall):
     if len(itemsToCall)==1: return itemsToCall[0]()
