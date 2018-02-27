@@ -19,6 +19,11 @@ class routine(object):
         config.info(self.out)
         self.closeStreams()
 
+    def destruct(self):
+        self.closeStreams()
+        del self.hdus[:]
+        return
+
     def jobString(self, iJob=None):
         if iJob is None:
             iJob = self.iJob
@@ -51,6 +56,7 @@ class routine(object):
             os.remove(self.outputFileName)
         hdulist.writeto(self.outputFileName)
         print("Wrote %s" % self.outputFileName, file=self.out)
+        self.destruct()
 
     def showFitsHeaders(self):
         if not os.path.exists(self.outputFileName):
