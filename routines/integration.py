@@ -10,6 +10,9 @@ class integration(La.routine):
 
     def __call__(self):
         try:
+            self.hdus.append( self.binCenters(self.config.binningS(), "centerS") )
+            self.hdus.append( self.binCenters(self.config.binningSigma(), "centerSigma") )
+            self.hdus.append( self.binCenters(self.config.binningPi(), "centerPi") )
             self.hdus.extend(self.tpcf())
             self.writeToFile()
         except MemoryError as e:
@@ -19,6 +22,12 @@ class integration(La.routine):
                              'Then combine job outputs: --nJobs 8']),
                             file=self.out)
         return
+
+    @timedHDU
+    def binCenters(self, binning, name):
+        centers = np.array( La.utils.centers(self.config.edgesFromBinning(binning)),
+                            dtype = [("binCenter", np.float64)])
+        return fits.BinTableHDU(centers, name=name)
 
     @timedHDU
     def tpcf(self):
@@ -36,15 +45,12 @@ class integration(La.routine):
         b = self.config.binningDD([self.config.binningS()])
         b2 = self.config.binningDD([self.config.binningSigma(),
                                     self.config.binningPi()])
-        centerSigmas, centerPis = np.meshgrid(self.centersSigma(),
-                                              self.centersPi(),
-                                              indexing='ij')
 
-        def rollAnHDU(name, addresses, binning, centers, dropZeros=False):
+        def rollAnHDU(name, addresses, binning, axes, dropZeros=False):
             rr, dr, dd, dde2 = self.calc(addresses, binning, slcT)
             mask = np.logical_or.reduce([a!=0 for a in [rr, dr, dd]]) if dropZeros else np.full(rr.shape, True, dtype=bool)
-            grid = [fits.Column(name=k, array=val[mask], format='E')
-                    for k,val in centers.items()]
+            grid = [fits.Column(name="i"+k, array=iK, format='I')
+                    for k,iK in zip(axes, np.where(mask))]
             hdu = fits.BinTableHDU.from_columns(grid + [
                 fits.Column(name='RR', array=rr[mask], format='D'),
                 fits.Column(name='DR', array=dr[mask], format='D'),
@@ -56,12 +62,12 @@ class integration(La.routine):
             hdu.header['NORMDR'] = self.getInput('gThetaZ').header['NORM']
             hdu.header['NORMDD'] = self.getInput('uThetaZZ').header['NORM']
             hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
-                                   " by distance" + ("s" if len(centers)>1 else "") + " " +
-                                   " and ".join(centers.keys()))
+                                   " by distance" + ("s" if len(axes)>1 else "") + " " +
+                                   " and ".join(axes))
             return hdu
 
-        hdu = rollAnHDU("TPCF", s, b, {"s":self.centersS()})
-        hdu2 = rollAnHDU("TPCF2D", sigmaPis, b2, {"sigma":centerSigmas, "pi":centerPis}, dropZeros=True)
+        hdu = rollAnHDU("TPCF", s, b, ["S"])
+        hdu2 = rollAnHDU("TPCF2D", sigmaPis, b2, ["Sigma", "Pi"], dropZeros=True)
 
         return [hdu2, hdu]
 
@@ -127,15 +133,6 @@ class integration(La.routine):
             dd[-1] = dd[-1] + utzz[wName][-1]
         return dd
 
-    def centersS(self):
-        return La.utils.centers(self.config.edgesFromBinning(self.config.binningS()))
-
-    def centersSigma(self):
-        return La.utils.centers(self.config.edgesFromBinning(self.config.binningSigma()))
-
-    def centersPi(self):
-        return La.utils.centers(self.config.edgesFromBinning(self.config.binningPi()))
-
     def zIntegral(self):
         zCenters = self.getInput('centerz').data['binCenter']
         zz = zip(np.hstack([[0.],zCenters]), zCenters)
@@ -164,11 +161,14 @@ class integration(La.routine):
                         for iJob in range(self.nJobs)]
 
         with fits.open(jobFiles[0]) as h0:
+            for h in ['centerS','centerSigma','centerPi']:
+                self.hdus.append(h0[h])
             hdu = h0['TPCF']
             cputime = hdu.header['cputime']
+
             for jF in jobFiles[1:]:
                 with fits.open(jF) as jfh:
-                    assert np.all( hdu.data['s'] == jfh['TPCF'].data['s'])
+                    assert np.all( hdu.data['iS'] == jfh['TPCF'].data['iS'])
                     cputime += jfh['TPCF'].header['cputime']
                     for col in ['RR','DR','DD','DDe2']:
                         hdu.data[col] += jfh['TPCF'].data[col]
@@ -190,18 +190,20 @@ class integration(La.routine):
         infile = self.outputFileName
 
         tpcf = fits.getdata(infile, 'TPCF')
+        centerS = fits.getdata(infile, 'centerS').binCenter
         nRR,nDR,nDD = (lambda h:
                        (h['normrr'],
                         h['normdr'],
                         h['normdd']))(fits.getheader(infile, 'TPCF'))
 
         def tpcfPlot(pdf, binFactor):
-            iStop = len(tpcf.s) // binFactor
+            s = centerS[tpcf.iS]
+            iStop = len(s) // binFactor
             plt.figure()
             plt.title(self.config.__class__.__name__)
-            plt.step(tpcf.s[:iStop], tpcf.RR[:iStop]/nRR, where='mid', label='RR', linewidth=0.4)
-            plt.step(tpcf.s[:iStop], tpcf.DR[:iStop]/nDR, where='mid', label='DR', linewidth=0.4)
-            plt.step(tpcf.s[:iStop], tpcf.DD[:iStop]/nDD, where='mid', label='DD', linewidth=0.4)
+            plt.step(s[:iStop], tpcf.RR[:iStop]/nRR, where='mid', label='RR', linewidth=0.4)
+            plt.step(s[:iStop], tpcf.DR[:iStop]/nDR, where='mid', label='DR', linewidth=0.4)
+            plt.step(s[:iStop], tpcf.DD[:iStop]/nDD, where='mid', label='DD', linewidth=0.4)
             plt.legend()
             plt.xlabel('s')
             plt.ylabel('probability')
@@ -209,8 +211,9 @@ class integration(La.routine):
             plt.close()
 
         def xissPlot(pdf, sMax):
-            iStop = None if tpcf.s[-1]<sMax else next(iter(np.where(tpcf.s >= sMax)[0]))
-            s = tpcf.s[:iStop]
+            S = centerS[tpcf.iS]
+            iStop = None if S[-1]<sMax else next(iter(np.where(S >= sMax)[0]))
+            s = S[:iStop]
             xi = ( (tpcf.RR[:iStop]/nRR + tpcf.DD[:iStop]/nDD - 2*tpcf.DR[:iStop]/nDR)
                    / (tpcf.RR[:iStop]/nRR) )
             xie = ( (np.sqrt(tpcf.DDe2[:iStop])/nDD)
