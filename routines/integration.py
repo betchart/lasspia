@@ -10,7 +10,7 @@ class integration(La.routine):
 
     def __call__(self):
         try:
-            self.hdus.append(self.tpcf())
+            self.hdus.extend(self.tpcf())
             self.writeToFile()
         except MemoryError as e:
             print(e.__class__.__name__, e, file=self.out)
@@ -33,32 +33,37 @@ class integration(La.routine):
         sigmaPis = self.sigmaPiGrid(slcT)
         s = np.sqrt(np.power(sigmaPis,2).sum(axis=-1))
 
-#        hdu2 = fits.BinTableHDU.from_columns([
-#            fits.Column(name='sigma', array=self.centersSigma(), format='E'),
-#            fits.Column(name='pi', array=self.centersPi(), format='E'),
-#            fits.Column(name='RR', array=rr2, format='D'),
-#            fits.Column(name='DR', array=dr2, format='D'),
-#            fits.Column(name='DD', array=dd2, format='D'),
-#            fits.Column(name='DDe2', array=dd2e2, format='D')],
-#                                            name="TPCF2D")
-
         b = self.config.binningDD([self.config.binningS()])
-        hdu = fits.BinTableHDU.from_columns([
-            fits.Column(name='s', array=self.centersS(), format='E'),
-            fits.Column(name='RR', array=self.calcRR(s, b, slcT), format='D'),
-            fits.Column(name='DR', array=self.calcDR(s, b, slcT), format='D'),
-            fits.Column(name='DD', array=self.calcDD(s, b, slcT, 'count'), format='D'),
-            fits.Column(name='DDe2', array=self.calcDD(s, b, slcT, 'err2'), format='D')],
-                                            name="TPCF")
+        b2 = self.config.binningDD([self.config.binningSigma(),
+                                    self.config.binningPi()])
+        centerSigmas, centerPis = np.meshgrid(self.centersSigma(),
+                                              self.centersPi(),
+                                              indexing='ij')
 
-        hdu.header['NORMRR'] = self.getInput('fTheta').header['NORM']
-        hdu.header['NORMDR'] = self.getInput('gThetaZ').header['NORM']
-        hdu.header['NORMDD'] = self.getInput('uThetaZZ').header['NORM']
+        def rollAnHDU(name, addresses, binning, centers, dropZeros=False):
+            rr, dr, dd, dde2 = self.calc(addresses, binning, slcT)
+            mask = np.logical_or.reduce([a!=0 for a in [rr, dr, dd]]) if dropZeros else np.full(rr.shape, True, dtype=bool)
+            grid = [fits.Column(name=k, array=val[mask], format='E')
+                    for k,val in centers.items()]
+            hdu = fits.BinTableHDU.from_columns(grid + [
+                fits.Column(name='RR', array=rr[mask], format='D'),
+                fits.Column(name='DR', array=dr[mask], format='D'),
+                fits.Column(name='DD', array=dd[mask], format='D'),
+                fits.Column(name='DDe2', array=dde2[mask], format='D')],
+                                                name=name)
 
-        hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
-                               " by distance s.")
+            hdu.header['NORMRR'] = self.getInput('fTheta').header['NORM']
+            hdu.header['NORMDR'] = self.getInput('gThetaZ').header['NORM']
+            hdu.header['NORMDD'] = self.getInput('uThetaZZ').header['NORM']
+            hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
+                                   " by distance" + ("s" if len(centers)>1 else "") + " " +
+                                   " and ".join(centers.keys()))
+            return hdu
 
-        return hdu
+        hdu = rollAnHDU("TPCF", s, b, {"s":self.centersS()})
+        hdu2 = rollAnHDU("TPCF2D", sigmaPis, b2, {"sigma":centerSigmas, "pi":centerPis}, dropZeros=True)
+
+        return [hdu2, hdu]
 
     def sigmaPiGrid(self, slcT):
         '''A cubic grid of (sigma, pi) values
@@ -74,6 +79,12 @@ class integration(La.routine):
         sigmas = sinT2[:,None,None] * (tOfZ[None,:,None] + tOfZ[None,None,:])
         pis = cosT2[:,None,None] * (rOfZ[None,:,None] - rOfZ[None,None,:])
         return np.stack([sigmas, pis], axis=-1)
+
+    def calc(self, *args):
+        return (self.calcRR(*args),
+                self.calcDR(*args),
+                self.calcDD(*args, wName='count'),
+                self.calcDD(*args, wName='err2'))
 
     def calcRR(self, addresses, binning, slcT):
         ft = self.getInput('fTheta').data['count'][slcT]
