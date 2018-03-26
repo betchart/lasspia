@@ -26,14 +26,12 @@ class integration(La.routine):
         self.zMask = np.ones(len(self.pdfz)**2, dtype=np.int).reshape(len(self.pdfz),len(self.pdfz))
         self.zMask[:self.config.nBinsMaskZ(),:self.config.nBinsMaskZ()] = 0
 
-        binsS = self.config.binningS()['bins']
-
         slcT =( slice(None) if self.iJob is None else
                 La.slicing.slices(len(self.getInput('centertheta').data),
                                   N=self.nJobs)[self.iJob] )
 
-        #sigmasPis = self.sigmaPiGrids(slcT)
-        s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
+        sigmaPis = self.sigmaPiGrid(slcT)
+        s = np.sqrt(np.power(sigmaPis,2).sum(axis=-1))
 
 #        hdu2 = fits.BinTableHDU.from_columns([
 #            fits.Column(name='sigma', array=self.centersSigma(), format='E'),
@@ -44,13 +42,13 @@ class integration(La.routine):
 #            fits.Column(name='DDe2', array=dd2e2, format='D')],
 #                                            name="TPCF2D")
 
-        b = self.config.binningS()
+        b = self.config.binningDD([self.config.binningS()])
         hdu = fits.BinTableHDU.from_columns([
             fits.Column(name='s', array=self.centersS(), format='E'),
-            fits.Column(name='RR', array=self.calcRR([s], b, slcT), format='D'),
-            fits.Column(name='DR', array=self.calcDR([s], b, slcT), format='D'),
-            fits.Column(name='DD', array=self.calcDD([s], b, slcT, 'count'), format='D'),
-            fits.Column(name='DDe2', array=self.calcDD([s], b, slcT, 'err2'), format='D')],
+            fits.Column(name='RR', array=self.calcRR(s, b, slcT), format='D'),
+            fits.Column(name='DR', array=self.calcDR(s, b, slcT), format='D'),
+            fits.Column(name='DD', array=self.calcDD(s, b, slcT, 'count'), format='D'),
+            fits.Column(name='DDe2', array=self.calcDD(s, b, slcT, 'err2'), format='D')],
                                             name="TPCF")
 
         hdu.header['NORMRR'] = self.getInput('fTheta').header['NORM']
@@ -60,10 +58,10 @@ class integration(La.routine):
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
 
-        return hdu, hdu2
+        return hdu
 
-    def sigmaPiGrids(self, slcT):
-        '''A cubic grid of sigma (pi) values
+    def sigmaPiGrid(self, slcT):
+        '''A cubic grid of (sigma, pi) values
         for pairs of galaxies with coordinates (iTheta, iZ1, iZ2).'''
         Iz = self.zIntegral()
         rOfZ = Iz * (self.config.lightspeed() / self.config.H0())
@@ -75,27 +73,31 @@ class integration(La.routine):
 
         sigmas = sinT2[:,None,None] * (tOfZ[None,:,None] + tOfZ[None,None,:])
         pis = cosT2[:,None,None] * (rOfZ[None,:,None] - rOfZ[None,None,:])
-        return sigmas, pis
+        return np.stack([sigmas, pis], axis=-1)
 
     def calcRR(self, addresses, binning, slcT):
         ft = self.getInput('fTheta').data['count'][slcT]
         counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
-        rr = np.histogramdd(*addresses, weights=counts, **binning)[0]
+        N = counts.size
+        D = addresses.size // N
+        rr = np.histogramdd(addresses.reshape(N,D), weights=counts.reshape(N), **binning)[0]
         del counts
         return rr
 
     def calcDR(self, addresses, binning, slcT):
         gtz = self.getInput('gThetaZ').data
         counts = gtz[slcT,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
-        dr = np.histogram(*addresses, weights=counts, **binning)[0]
+        N = counts.size
+        D = addresses.size // N
+        dr = np.histogramdd(addresses.reshape(N,D), weights=counts.reshape(N), **binning)[0]
         del counts
         return dr
 
     def calcDD(self, addresses, binning, slcT, wName='count'):
-        nElements = addresses[0].shape[1]
+        nZ = addresses.shape[1]
 
         utzz = self.getInput('uThetaZZ').data
-        overflow = utzz['binZdZ'][-1]+1 == nElements**2
+        overflow = utzz['binZdZ'][-1]+1 == nZ**2
         slc = slice(-1 if overflow else None)
 
         iThetas = utzz['binTheta'][slc]
@@ -104,12 +106,12 @@ class integration(La.routine):
 
         iTh = iThetas[mask] - (slcT.start or 0)
         iZdZ = utzz['binZdZ'][slc][mask]
-        iZ = iZdZ // nElements
-        diZ = iZdZ % nElements
+        iZ = iZdZ // nZ
+        diZ = iZdZ % nZ
         iZ2 = iZ + diZ
         counts = utzz[wName][slc][mask] * self.zMask[iZ,iZ2]
 
-        dd = np.histogramdd(*[s[iTh,iZ,iZ2] for s in addresses], weights=counts, **binning)[0]
+        dd = np.histogramdd(addresses[iTh,iZ,iZ2], weights=counts, **binning)[0]
         if overflow and self.iJob in [0,None]:
             dd[-1] = dd[-1] + utzz[wName][-1]
         return dd
