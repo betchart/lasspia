@@ -32,13 +32,25 @@ class integration(La.routine):
                 La.slicing.slices(len(self.getInput('centertheta').data),
                                   N=self.nJobs)[self.iJob] )
 
+        #sigmasPis = self.sigmaPiGrids(slcT)
         s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
+
+#        hdu2 = fits.BinTableHDU.from_columns([
+#            fits.Column(name='sigma', array=self.centersSigma(), format='E'),
+#            fits.Column(name='pi', array=self.centersPi(), format='E'),
+#            fits.Column(name='RR', array=rr2, format='D'),
+#            fits.Column(name='DR', array=dr2, format='D'),
+#            fits.Column(name='DD', array=dd2, format='D'),
+#            fits.Column(name='DDe2', array=dd2e2, format='D')],
+#                                            name="TPCF2D")
+
+        b = self.config.binningS()
         hdu = fits.BinTableHDU.from_columns([
             fits.Column(name='s', array=self.centersS(), format='E'),
-            fits.Column(name='RR', array=self.calcRR(s, slcT), format='D'),
-            fits.Column(name='DR', array=self.calcDR(s, slcT), format='D'),
-            fits.Column(name='DD', array=self.calcDD(s, slcT, 'count'), format='D'),
-            fits.Column(name='DDe2', array=self.calcDD(s, slcT, 'err2'), format='D')],
+            fits.Column(name='RR', array=self.calcRR([s], b, slcT), format='D'),
+            fits.Column(name='DR', array=self.calcDR([s], b, slcT), format='D'),
+            fits.Column(name='DD', array=self.calcDD([s], b, slcT, 'count'), format='D'),
+            fits.Column(name='DDe2', array=self.calcDD([s], b, slcT, 'err2'), format='D')],
                                             name="TPCF")
 
         hdu.header['NORMRR'] = self.getInput('fTheta').header['NORM']
@@ -47,7 +59,8 @@ class integration(La.routine):
 
         hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
                                " by distance s.")
-        return hdu
+
+        return hdu, hdu2
 
     def sigmaPiGrids(self, slcT):
         '''A cubic grid of sigma (pi) values
@@ -64,23 +77,25 @@ class integration(La.routine):
         pis = cosT2[:,None,None] * (rOfZ[None,:,None] - rOfZ[None,None,:])
         return sigmas, pis
 
-    def calcRR(self,s, slcT):
+    def calcRR(self, addresses, binning, slcT):
         ft = self.getInput('fTheta').data['count'][slcT]
         counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
-        rr = np.histogram(s, weights=counts, **self.config.binningS())[0]
+        rr = np.histogramdd(*addresses, weights=counts, **binning)[0]
         del counts
         return rr
 
-    def calcDR(self,s, slcT):
+    def calcDR(self, addresses, binning, slcT):
         gtz = self.getInput('gThetaZ').data
         counts = gtz[slcT,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
-        dr = np.histogram(s, weights=counts, **self.config.binningS())[0]
+        dr = np.histogram(*addresses, weights=counts, **binning)[0]
         del counts
         return dr
 
-    def calcDD(self,s, slcT, wName='count'):
+    def calcDD(self, addresses, binning, slcT, wName='count'):
+        nElements = addresses[0].shape[1]
+
         utzz = self.getInput('uThetaZZ').data
-        overflow = utzz['binZdZ'][-1]+1 == s.shape[1]**2
+        overflow = utzz['binZdZ'][-1]+1 == nElements**2
         slc = slice(-1 if overflow else None)
 
         iThetas = utzz['binTheta'][slc]
@@ -89,18 +104,24 @@ class integration(La.routine):
 
         iTh = iThetas[mask] - (slcT.start or 0)
         iZdZ = utzz['binZdZ'][slc][mask]
-        iZ = iZdZ // s.shape[1]
-        diZ = iZdZ % s.shape[1]
+        iZ = iZdZ // nElements
+        diZ = iZdZ % nElements
         iZ2 = iZ + diZ
         counts = utzz[wName][slc][mask] * self.zMask[iZ,iZ2]
 
-        dd = np.histogram(s[iTh,iZ,iZ2], weights=counts, **self.config.binningS())[0]
+        dd = np.histogramdd(*[s[iTh,iZ,iZ2] for s in addresses], weights=counts, **binning)[0]
         if overflow and self.iJob in [0,None]:
             dd[-1] = dd[-1] + utzz[wName][-1]
         return dd
 
     def centersS(self):
         return La.utils.centers(self.config.edgesFromBinning(self.config.binningS()))
+
+    def centersSigma(self):
+        return La.utils.centers(self.config.edgesFromBinning(self.config.binningSigma()))
+
+    def centersPi(self):
+        return La.utils.centers(self.config.edgesFromBinning(self.config.binningPi()))
 
     def zIntegral(self):
         zCenters = self.getInput('centerz').data['binCenter']
