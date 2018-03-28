@@ -35,7 +35,6 @@ class multiIntegration(integration):
     def nVariations(self): return len(self.variationsOmegasMKL)
 
     def omegasMKL(self): return self.variationsOmegasMKL[self.iOmegas]
-    def H0(self): return self.config.H0()
 
     @property
     def outputFileName(self):
