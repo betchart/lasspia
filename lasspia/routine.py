@@ -22,6 +22,7 @@ class routine(object):
     def destruct(self):
         self.closeStreams()
         del self.hdus[:]
+        self.hdus = [fits.PrimaryHDU()]
         return
 
     def jobString(self, iJob=None):

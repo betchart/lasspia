@@ -11,9 +11,10 @@ class integration(La.routine):
 
     def __call__(self):
         try:
-            self.hdus.append( self.binCenters(self.config.binningS(), "centerS") )
-            self.hdus.append( self.binCenters(self.config.binningSigma(), "centerSigma") )
-            self.hdus.append( self.binCenters(self.config.binningPi(), "centerPi") )
+            self.hdus.append(self.integrationParameters())
+            self.hdus.append(self.binCenters(self.config.binningS(), "centerS") )
+            self.hdus.append(self.binCenters(self.config.binningSigma(), "centerSigma") )
+            self.hdus.append(self.binCenters(self.config.binningPi(), "centerPi") )
             self.hdus.extend(self.tpcf())
             self.writeToFile()
         except MemoryError as e:
@@ -23,6 +24,17 @@ class integration(La.routine):
                              'Then combine job outputs: --nJobs 8']),
                             file=self.out)
         return
+
+    def omegasMKL(self): return self.config.omegasMKL()
+    def H0(self): return self.config.H0()
+
+    @timedHDU
+    def integrationParameters(self):
+        hdu = fits.TableHDU(name='parameters')
+        hdu.header['lightspd'] = self.config.lightspeed()
+        hdu.header['omegaM'], hdu.header['omegaK'], hdu.header['omegaL'] = self.omegasMKL()
+        hdu.header['H0'] = self.H0()
+        return hdu
 
     @timedHDU
     def binCenters(self, binning, name):
@@ -76,8 +88,8 @@ class integration(La.routine):
         '''A cubic grid of (sigma, pi) values
         for pairs of galaxies with coordinates (iTheta, iZ1, iZ2).'''
         Iz = self.zIntegral()
-        rOfZ = Iz * (self.config.lightspeed() / self.config.H0())
-        tOfZ = rOfZ * (1 + self.config.omegasMKL()[1]/6 * Iz**2)
+        rOfZ = Iz * (self.config.lightspeed() / self.H0())
+        tOfZ = rOfZ * (1 + self.omegasMKL()[1]/6 * Iz**2)
 
         thetas = self.getInput('centertheta').data['binCenter'][slcT]
         sinT2 = np.sin(thetas/2)
@@ -137,7 +149,7 @@ class integration(La.routine):
     def zIntegral(self):
         zCenters = self.getInput('centerz').data['binCenter']
         zz = zip(np.hstack([[0.],zCenters]), zCenters)
-        dIz = [quad(self.integrand, z1, z2, args=self.config.omegasMKL())[0]
+        dIz = [quad(self.integrand, z1, z2, args=self.omegasMKL())[0]
                for z1,z2 in zz]
         return np.cumsum(dIz)
 
@@ -163,7 +175,7 @@ class integration(La.routine):
         shape2D = (self.config.binningSigma()['bins'], self.config.binningPi()['bins'])
 
         with fits.open(jobFiles[0]) as h0:
-            for h in ['centerS','centerSigma','centerPi']:
+            for h in ['centerS','centerSigma','centerPi','parameters']:
                 self.hdus.append(h0[h])
             hdu = h0['TPCF']
             tpcf2d = AdderTPCF2D(h0['TPCF2D'], shape2D)
@@ -171,7 +183,11 @@ class integration(La.routine):
 
             for jF in jobFiles[1:]:
                 with fits.open(jF) as jfh:
-                    assert np.all( hdu.data['iS'] == jfh['TPCF'].data['iS'])
+                    assert np.all(h0['parameters'].header[item] == jfh['parameters'].header[item]
+                                  for item in ['lightspd','H0','omegaM','omegaK','omegaL'])
+                    for axis in ['centerS','centerSigma','centerPi']:
+                        assert np.all(h0[axis].data['binCenter'] == jfh[axis].data['binCenter'])
+
                     cputime += jfh['TPCF'].header['cputime']
                     tpcf2d += AdderTPCF2D(jfh['TPCF2D'], shape2D)
                     for col in ['RR','DR','DD','DDe2']:
