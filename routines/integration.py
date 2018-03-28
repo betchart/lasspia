@@ -4,6 +4,7 @@ import numpy as np
 import lasspia as La
 from astropy.io import fits
 from scipy.integrate import quad
+from scipy.sparse import csr_matrix
 from lasspia.timing import timedHDU
 
 class integration(La.routine):
@@ -46,7 +47,7 @@ class integration(La.routine):
         b2 = self.config.binningDD([self.config.binningSigma(),
                                     self.config.binningPi()])
 
-        def rollAnHDU(name, addresses, binning, axes, dropZeros=False):
+        def bundleHDU(name, addresses, binning, axes, dropZeros=False):
             rr, dr, dd, dde2 = self.calc(addresses, binning, slcT)
             mask = np.logical_or.reduce([a!=0 for a in [rr, dr, dd]]) if dropZeros else np.full(rr.shape, True, dtype=bool)
             grid = [fits.Column(name="i"+k, array=iK, format='I')
@@ -66,8 +67,8 @@ class integration(La.routine):
                                    " and ".join(axes))
             return hdu
 
-        hdu = rollAnHDU("TPCF", s, b, ["S"])
-        hdu2 = rollAnHDU("TPCF2D", sigmaPis, b2, ["Sigma", "Pi"], dropZeros=True)
+        hdu = bundleHDU("TPCF", s, b, ["S"])
+        hdu2 = bundleHDU("TPCF2D", sigmaPis, b2, ["Sigma", "Pi"], dropZeros=True)
 
         return [hdu2, hdu]
 
@@ -154,25 +155,29 @@ class integration(La.routine):
         hdulist = fits.open(self.inputFileName)
         return hdulist[name]
 
-
     def combineOutput(self, jobFiles = None):
         if not jobFiles:
             jobFiles = [self.outputFileName + self.jobString(iJob)
                         for iJob in range(self.nJobs)]
 
+        shape2D = (self.config.binningSigma()['bins'], self.config.binningPi()['bins'])
+
         with fits.open(jobFiles[0]) as h0:
             for h in ['centerS','centerSigma','centerPi']:
                 self.hdus.append(h0[h])
             hdu = h0['TPCF']
+            tpcf2d = AdderTPCF2D(h0['TPCF2D'], shape2D)
             cputime = hdu.header['cputime']
 
             for jF in jobFiles[1:]:
                 with fits.open(jF) as jfh:
                     assert np.all( hdu.data['iS'] == jfh['TPCF'].data['iS'])
                     cputime += jfh['TPCF'].header['cputime']
+                    tpcf2d += AdderTPCF2D(jfh['TPCF2D'], shape2D)
                     for col in ['RR','DR','DD','DDe2']:
                         hdu.data[col] += jfh['TPCF'].data[col]
             hdu.header['cputime'] = cputime
+            self.hdus.append(tpcf2d.fillHDU(h0['TPCF2D']))
             self.hdus.append(hdu)
             self.writeToFile()
         return
@@ -235,3 +240,27 @@ class integration(La.routine):
             xissPlot(pdf, 200)
             print('Wrote %s'% pdf._file.fh.name, file=self.out)
         return
+
+class AdderTPCF2D(object):
+    def __init__(self, tpcf2d=None, shape2D=None):
+        self.items = ['RR','DR','DD','DDe2']
+        if not tpcf2d: return
+        indices = (tpcf2d.data['iSigma'], tpcf2d.data['iPi'])
+        for item in self.items:
+            setattr(self, item, csr_matrix((tpcf2d.data[item], indices), shape2D))
+        return
+
+    def __add__(self, other):
+        thesum = AdderTPCF2D()
+        for item in self.items:
+            setattr(thesum, item, getattr(self,item) + getattr(other, item))
+        return thesum
+
+    def fillHDU(self, hdu):
+        allnonzero = sum(getattr(self, item) for item in self.items)
+        iSigma, iPi = allnonzero.nonzero()
+        hdu.data['iSigma'] = iSigma
+        hdu.data['iPi'] = iPi
+        for item in self.items:
+            hdu.data[item] = getattr(self, item)[iSigma, iPi].A1
+        return hdu
