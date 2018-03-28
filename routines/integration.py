@@ -24,6 +24,9 @@ class integration(La.routine):
                             file=self.out)
         return
 
+    def omegasMKL(self): return self.config.omegasMKL()
+    def H0(self): return self.config.H0()
+
     @timedHDU
     def binCenters(self, binning, name):
         centers = np.array( La.utils.centers(self.config.edgesFromBinning(binning)),
@@ -76,8 +79,8 @@ class integration(La.routine):
         '''A cubic grid of (sigma, pi) values
         for pairs of galaxies with coordinates (iTheta, iZ1, iZ2).'''
         Iz = self.zIntegral()
-        rOfZ = Iz * (self.config.lightspeed() / self.config.H0())
-        tOfZ = rOfZ * (1 + self.config.omegasMKL()[1]/6 * Iz**2)
+        rOfZ = Iz * (self.config.lightspeed() / self.H0())
+        tOfZ = rOfZ * (1 + self.omegasMKL()[1]/6 * Iz**2)
 
         thetas = self.getInput('centertheta').data['binCenter'][slcT]
         sinT2 = np.sin(thetas/2)
@@ -137,7 +140,7 @@ class integration(La.routine):
     def zIntegral(self):
         zCenters = self.getInput('centerz').data['binCenter']
         zz = zip(np.hstack([[0.],zCenters]), zCenters)
-        dIz = [quad(self.integrand, z1, z2, args=self.config.omegasMKL())[0]
+        dIz = [quad(self.integrand, z1, z2, args=self.omegasMKL())[0]
                for z1,z2 in zz]
         return np.cumsum(dIz)
 
