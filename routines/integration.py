@@ -4,13 +4,17 @@ import numpy as np
 import lasspia as La
 from astropy.io import fits
 from scipy.integrate import quad
+from scipy.sparse import csr_matrix
 from lasspia.timing import timedHDU
 
 class integration(La.routine):
 
     def __call__(self):
         try:
-            self.hdus.append(self.tpcf())
+            self.hdus.append( self.binCenters(self.config.binningS(), "centerS") )
+            self.hdus.append( self.binCenters(self.config.binningSigma(), "centerSigma") )
+            self.hdus.append( self.binCenters(self.config.binningPi(), "centerPi") )
+            self.hdus.extend(self.tpcf())
             self.writeToFile()
         except MemoryError as e:
             print(e.__class__.__name__, e, file=self.out)
@@ -21,36 +25,55 @@ class integration(La.routine):
         return
 
     @timedHDU
+    def binCenters(self, binning, name):
+        centers = np.array( La.utils.centers(self.config.edgesFromBinning(binning)),
+                            dtype = [("binCenter", np.float64)])
+        return fits.BinTableHDU(centers, name=name)
+
+    @timedHDU
     def tpcf(self):
         self.pdfz = self.getInput('pdfZ').data['probability']
         self.zMask = np.ones(len(self.pdfz)**2, dtype=np.int).reshape(len(self.pdfz),len(self.pdfz))
         self.zMask[:self.config.nBinsMaskZ(),:self.config.nBinsMaskZ()] = 0
 
-        binsS = self.config.binningS()['bins']
-
         slcT =( slice(None) if self.iJob is None else
                 La.slicing.slices(len(self.getInput('centertheta').data),
                                   N=self.nJobs)[self.iJob] )
 
-        s = np.sqrt(sum(np.power(a,2) for a in self.sigmaPiGrids(slcT)))
-        hdu = fits.BinTableHDU.from_columns([
-            fits.Column(name='s', array=self.centersS(), format='E'),
-            fits.Column(name='RR', array=self.calcRR(s, slcT), format='D'),
-            fits.Column(name='DR', array=self.calcDR(s, slcT), format='D'),
-            fits.Column(name='DD', array=self.calcDD(s, slcT, 'count'), format='D'),
-            fits.Column(name='DDe2', array=self.calcDD(s, slcT, 'err2'), format='D')],
-                                            name="TPCF")
+        def bundleHDU(name, addresses, binning, axes, dropZeros=False):
+            rr, dr, dd, dde2 = self.calc(addresses, binning, slcT)
+            mask = np.logical_or.reduce([a!=0 for a in [rr, dr, dd]]) if dropZeros else np.full(rr.shape, True, dtype=bool)
+            grid = [fits.Column(name="i"+k, array=iK, format='I')
+                    for k,iK in zip(axes, np.where(mask))]
+            hdu = fits.BinTableHDU.from_columns(grid + [
+                fits.Column(name='RR', array=rr[mask], format='D'),
+                fits.Column(name='DR', array=dr[mask], format='D'),
+                fits.Column(name='DD', array=dd[mask], format='D'),
+                fits.Column(name='DDe2', array=dde2[mask], format='D')],
+                                                name=name)
 
-        hdu.header['NORMRR'] = self.getInput('fTheta').header['NORM']
-        hdu.header['NORMDR'] = self.getInput('gThetaZ').header['NORM']
-        hdu.header['NORMDD'] = self.getInput('uThetaZZ').header['NORM']
+            hdu.header['NORMRR'] = self.getInput('fTheta').header['NORM']
+            hdu.header['NORMDR'] = self.getInput('gThetaZ').header['NORM']
+            hdu.header['NORMDD'] = self.getInput('uThetaZZ').header['NORM']
+            hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
+                                   " by distance" + ("s" if len(axes)>1 else "") + " " +
+                                   " and ".join(axes))
+            return hdu
 
-        hdu.header.add_comment("Two-point correlation function for pairs of galaxies,"+
-                               " by distance s.")
-        return hdu
+        sigmaPis = self.sigmaPiGrid(slcT)
+        s = np.sqrt(np.power(sigmaPis,2).sum(axis=-1))
 
-    def sigmaPiGrids(self, slcT):
-        '''A cubic grid of sigma (pi) values
+        b = self.config.binningDD([self.config.binningS()])
+        b2 = self.config.binningDD([self.config.binningSigma(),
+                                    self.config.binningPi()])
+
+        hdu = bundleHDU("TPCF", s, b, ["S"])
+        hdu2 = bundleHDU("TPCF2D", sigmaPis, b2, ["Sigma", "Pi"], dropZeros=True)
+
+        return [hdu2, hdu]
+
+    def sigmaPiGrid(self, slcT):
+        '''A cubic grid of (sigma, pi) values
         for pairs of galaxies with coordinates (iTheta, iZ1, iZ2).'''
         Iz = self.zIntegral()
         rOfZ = Iz * (self.config.lightspeed() / self.config.H0())
@@ -62,25 +85,37 @@ class integration(La.routine):
 
         sigmas = sinT2[:,None,None] * (tOfZ[None,:,None] + tOfZ[None,None,:])
         pis = cosT2[:,None,None] * (rOfZ[None,:,None] - rOfZ[None,None,:])
-        return sigmas, pis
+        return np.stack([sigmas, pis], axis=-1)
 
-    def calcRR(self,s, slcT):
+    def calc(self, *args):
+        return (self.calcRR(*args),
+                self.calcDR(*args),
+                self.calcDD(*args, wName='count'),
+                self.calcDD(*args, wName='err2'))
+
+    def calcRR(self, addresses, binning, slcT):
         ft = self.getInput('fTheta').data['count'][slcT]
         counts = ft[:,None,None] * self.pdfz[None,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
-        rr = np.histogram(s, weights=counts, **self.config.binningS())[0]
+        N = counts.size
+        D = addresses.size // N
+        rr = np.histogramdd(addresses.reshape(N,D), weights=counts.reshape(N), **binning)[0]
         del counts
         return rr
 
-    def calcDR(self,s, slcT):
+    def calcDR(self, addresses, binning, slcT):
         gtz = self.getInput('gThetaZ').data
         counts = gtz[slcT,:,None] * self.pdfz[None,None,:] * self.zMask[None,:]
-        dr = np.histogram(s, weights=counts, **self.config.binningS())[0]
+        N = counts.size
+        D = addresses.size // N
+        dr = np.histogramdd(addresses.reshape(N,D), weights=counts.reshape(N), **binning)[0]
         del counts
         return dr
 
-    def calcDD(self,s, slcT, wName='count'):
+    def calcDD(self, addresses, binning, slcT, wName='count'):
+        nZ = addresses.shape[1]
+
         utzz = self.getInput('uThetaZZ').data
-        overflow = utzz['binZdZ'][-1]+1 == s.shape[1]**2
+        overflow = utzz['binZdZ'][-1]+1 == nZ**2
         slc = slice(-1 if overflow else None)
 
         iThetas = utzz['binTheta'][slc]
@@ -89,18 +124,15 @@ class integration(La.routine):
 
         iTh = iThetas[mask] - (slcT.start or 0)
         iZdZ = utzz['binZdZ'][slc][mask]
-        iZ = iZdZ // s.shape[1]
-        diZ = iZdZ % s.shape[1]
+        iZ = iZdZ // nZ
+        diZ = iZdZ % nZ
         iZ2 = iZ + diZ
         counts = utzz[wName][slc][mask] * self.zMask[iZ,iZ2]
 
-        dd = np.histogram(s[iTh,iZ,iZ2], weights=counts, **self.config.binningS())[0]
+        dd = np.histogramdd(addresses[iTh,iZ,iZ2], weights=counts, **binning)[0]
         if overflow and self.iJob in [0,None]:
             dd[-1] = dd[-1] + utzz[wName][-1]
         return dd
-
-    def centersS(self):
-        return La.utils.centers(self.config.edgesFromBinning(self.config.binningS()))
 
     def zIntegral(self):
         zCenters = self.getInput('centerz').data['binCenter']
@@ -123,22 +155,29 @@ class integration(La.routine):
         hdulist = fits.open(self.inputFileName)
         return hdulist[name]
 
-
     def combineOutput(self, jobFiles = None):
         if not jobFiles:
             jobFiles = [self.outputFileName + self.jobString(iJob)
                         for iJob in range(self.nJobs)]
 
+        shape2D = (self.config.binningSigma()['bins'], self.config.binningPi()['bins'])
+
         with fits.open(jobFiles[0]) as h0:
+            for h in ['centerS','centerSigma','centerPi']:
+                self.hdus.append(h0[h])
             hdu = h0['TPCF']
+            tpcf2d = AdderTPCF2D(h0['TPCF2D'], shape2D)
             cputime = hdu.header['cputime']
+
             for jF in jobFiles[1:]:
                 with fits.open(jF) as jfh:
-                    assert np.all( hdu.data['s'] == jfh['TPCF'].data['s'])
+                    assert np.all( hdu.data['iS'] == jfh['TPCF'].data['iS'])
                     cputime += jfh['TPCF'].header['cputime']
+                    tpcf2d += AdderTPCF2D(jfh['TPCF2D'], shape2D)
                     for col in ['RR','DR','DD','DDe2']:
                         hdu.data[col] += jfh['TPCF'].data[col]
             hdu.header['cputime'] = cputime
+            self.hdus.append(tpcf2d.fillHDU(h0['TPCF2D']))
             self.hdus.append(hdu)
             self.writeToFile()
         return
@@ -156,18 +195,20 @@ class integration(La.routine):
         infile = self.outputFileName
 
         tpcf = fits.getdata(infile, 'TPCF')
+        centerS = fits.getdata(infile, 'centerS').binCenter
         nRR,nDR,nDD = (lambda h:
                        (h['normrr'],
                         h['normdr'],
                         h['normdd']))(fits.getheader(infile, 'TPCF'))
 
         def tpcfPlot(pdf, binFactor):
-            iStop = len(tpcf.s) // binFactor
+            s = centerS[tpcf.iS]
+            iStop = len(s) // binFactor
             plt.figure()
             plt.title(self.config.__class__.__name__)
-            plt.step(tpcf.s[:iStop], tpcf.RR[:iStop]/nRR, where='mid', label='RR', linewidth=0.4)
-            plt.step(tpcf.s[:iStop], tpcf.DR[:iStop]/nDR, where='mid', label='DR', linewidth=0.4)
-            plt.step(tpcf.s[:iStop], tpcf.DD[:iStop]/nDD, where='mid', label='DD', linewidth=0.4)
+            plt.step(s[:iStop], tpcf.RR[:iStop]/nRR, where='mid', label='RR', linewidth=0.4)
+            plt.step(s[:iStop], tpcf.DR[:iStop]/nDR, where='mid', label='DR', linewidth=0.4)
+            plt.step(s[:iStop], tpcf.DD[:iStop]/nDD, where='mid', label='DD', linewidth=0.4)
             plt.legend()
             plt.xlabel('s')
             plt.ylabel('probability')
@@ -175,8 +216,9 @@ class integration(La.routine):
             plt.close()
 
         def xissPlot(pdf, sMax):
-            iStop = None if tpcf.s[-1]<sMax else next(iter(np.where(tpcf.s >= sMax)[0]))
-            s = tpcf.s[:iStop]
+            S = centerS[tpcf.iS]
+            iStop = None if S[-1]<sMax else next(iter(np.where(S >= sMax)[0]))
+            s = S[:iStop]
             xi = ( (tpcf.RR[:iStop]/nRR + tpcf.DD[:iStop]/nDD - 2*tpcf.DR[:iStop]/nDR)
                    / (tpcf.RR[:iStop]/nRR) )
             xie = ( (np.sqrt(tpcf.DDe2[:iStop])/nDD)
@@ -198,3 +240,27 @@ class integration(La.routine):
             xissPlot(pdf, 200)
             print('Wrote %s'% pdf._file.fh.name, file=self.out)
         return
+
+class AdderTPCF2D(object):
+    def __init__(self, tpcf2d=None, shape2D=None):
+        self.items = ['RR','DR','DD','DDe2']
+        if not tpcf2d: return
+        indices = (tpcf2d.data['iSigma'], tpcf2d.data['iPi'])
+        for item in self.items:
+            setattr(self, item, csr_matrix((tpcf2d.data[item], indices), shape2D))
+        return
+
+    def __add__(self, other):
+        thesum = AdderTPCF2D()
+        for item in self.items:
+            setattr(thesum, item, getattr(self,item) + getattr(other, item))
+        return thesum
+
+    def fillHDU(self, hdu):
+        allnonzero = sum(getattr(self, item) for item in self.items)
+        iSigma, iPi = allnonzero.nonzero()
+        hdu.data['iSigma'] = iSigma
+        hdu.data['iPi'] = iPi
+        for item in self.items:
+            hdu.data[item] = getattr(self, item)[iSigma, iPi].A1
+        return hdu

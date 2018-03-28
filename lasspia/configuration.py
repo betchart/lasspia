@@ -34,6 +34,10 @@ class configuration(object):
 
     '''Configuration affecting only the "integration" routine.'''
     def binningS(self): pass
+    def binningSigma(self):
+        sbing = self.binningS()
+        return {'bins':2*sbing['bins'], 'range':(-sbing['range'][1], sbing['range'][1])}
+    def binningPi(self): return self.binningSigma()
     def omegasMKL(self): pass
     def H0(self): pass
     def lightspeed(self): pass
