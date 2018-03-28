@@ -40,13 +40,6 @@ class integration(La.routine):
                 La.slicing.slices(len(self.getInput('centertheta').data),
                                   N=self.nJobs)[self.iJob] )
 
-        sigmaPis = self.sigmaPiGrid(slcT)
-        s = np.sqrt(np.power(sigmaPis,2).sum(axis=-1))
-
-        b = self.config.binningDD([self.config.binningS()])
-        b2 = self.config.binningDD([self.config.binningSigma(),
-                                    self.config.binningPi()])
-
         def bundleHDU(name, addresses, binning, axes, dropZeros=False):
             rr, dr, dd, dde2 = self.calc(addresses, binning, slcT)
             mask = np.logical_or.reduce([a!=0 for a in [rr, dr, dd]]) if dropZeros else np.full(rr.shape, True, dtype=bool)
@@ -66,6 +59,13 @@ class integration(La.routine):
                                    " by distance" + ("s" if len(axes)>1 else "") + " " +
                                    " and ".join(axes))
             return hdu
+
+        sigmaPis = self.sigmaPiGrid(slcT)
+        s = np.sqrt(np.power(sigmaPis,2).sum(axis=-1))
+
+        b = self.config.binningDD([self.config.binningS()])
+        b2 = self.config.binningDD([self.config.binningSigma(),
+                                    self.config.binningPi()])
 
         hdu = bundleHDU("TPCF", s, b, ["S"])
         hdu2 = bundleHDU("TPCF2D", sigmaPis, b2, ["Sigma", "Pi"], dropZeros=True)
